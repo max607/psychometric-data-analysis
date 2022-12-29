@@ -1,0 +1,421 @@
+---
+title: "Report On Big Five, Assignment 29"
+author: "Maximilian Schneider"
+date: "`r format(Sys.time(), '%d.%m.%Y')`"
+documentclass: report
+urlcolor: blue
+output:
+  bookdown::pdf_document2:
+    toc: true
+    toc_depth: 3
+    includes:
+      in_header: preamble.tex
+---
+
+<!-- To render book from terminal use: Rscript -e "rmarkdown::render('big-five.Rmd')" -->
+
+<style>
+body {
+text-align: justify}
+.main-container {
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+Abstract
+
+# Introduction
+
+<!-- Configuration -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align = "center", out.width='80%',
+                      include = FALSE, echo = FALSE, cache = FALSE)
+```
+
+```{r dependencies}
+library(data.table)
+library(purrr)
+library(magrittr)
+library(ggplot2); theme_set(theme_bw())
+```
+
+<!-- Data preparation -->
+
+```{r read-data}
+dt_bigf <- read.table("data.csv", header = TRUE, sep = "\t", na.strings = "") %>%
+  as.data.table()
+```
+
+```{r format-data}
+dt_bigf[, c("country", "education", "urban", "gender", "engnat", "hand", "religion",
+            "orientation", "race", "voted", "married", "os", "browser") :=
+          .(factor(country),
+            factor(education, labels = c("le_hs", "hs", "uni_degree", "grad_degree"), exclude = 0),
+            factor(urban, labels = c("rural", "suburban", "urban"), exclude = 0),
+            factor(gender, labels = c("male", "female", "other"), exclude = 0),
+            factor(engnat, labels = c("yes", "no"), exclude = 0),
+            factor(hand, labels = c("right", "left", "both"), exclude = 0),
+            factor(religion, labels = c("agnostic", "atheist", "buddhist", "catholic", "mormon",
+                                        "protestant", "christian_other", "hindu",
+                                        "jewish", "muslim", "sikh", "other"), exclude = 0),
+            factor(orientation, labels = c("heterosexual", "bisexual", "homosexual", "asexual",
+                                           "other"), exclude = 0),
+            factor(race, labels = c("asian", "arab", "black", "misc", "other"), exclude = 0),
+            factor(voted, labels = c("yes", "no"), exclude = 0),
+            factor(married, labels = c("no", "yes", "divorced"), exclude = 0),
+            factor(operatingsystem), factor(browser))
+]
+
+# family size wrong - women with most children had 44
+dt_bigf[familysize > 44 | familysize == 0, familysize := NA]
+
+# age wrong
+dt_bigf[age > 99, age := NA]
+
+# zeros are NAs
+names_o <- names(dt_bigf) %>% grep(pattern = "^O", value = TRUE)
+dt_bigf[, (names_o) := lapply(.SD, function(col) ifelse(col == 0, NA, col)), .SDcols = names_o]
+```
+
+```{r look-at-vcl}
+vec_word <- dt_bigf[, sapply(.SD, mean), .SDcols = patterns("^VCL")] %>%
+  set_names(c("boat", "incoherent", "pallid", "robot", "audible", "cuivocal", "paucity",
+              "epistemology", "florted", "decide", "pastiche", "verdid", "abysmal", "lucid",
+              "betray", "funny"))
+vec_word[-c(6, 9, 12)]  # true words
+vec_word[c(6, 9, 12)]  # made up words
+```
+
+```{r make-eloquence}
+vcl_fluke <- paste0("VCL", c(6, 9, 12))
+dt_bigf[, (vcl_fluke) := lapply(.SD, function(col) as.integer(col == 0)), .SDcols = vcl_fluke]
+dt_bigf[, eloquence := rowMeans(.SD), .SDcols = patterns("^VCL")]
+```
+
+```{r make-openness}
+dt_bigf[, (names_o) := .SD - 1, .SDcols = names_o]
+
+# numbers of missing answers per person (two where all values are missing)
+dt_bigf[, O_NA := rowSums(is.na(.SD)), .SDcols = names_o]
+dt_bigf[, table(O_NA)]
+
+# 1 question = 4 trials (range 0-4)
+dt_bigf[, trials := 40 - 4 * O_NA]
+dt_bigf[, table(trials)]
+
+# mark zero trials as missing
+dt_bigf[trials == 0, trials := NA]
+dt_bigf[, table(trials)]
+
+# binomial data
+dt_bigf[!is.na(trials), hits := rowSums(.SD, na.rm = TRUE), .SDcols = names_o]
+dt_bigf[, c("misses", "openness") := .(trials - hits, hits / trials)]
+```
+
+```{r removing-columns}
+dt_bigf[, c(grep("^[ACENOGV]", names(dt_bigf), value = TRUE), "operatingsystem") := NULL]
+setcolorder(dt_bigf, neworder = c("introelapse", "testelapse", "surveyelapse", "browser",
+                                  "screenw", "screenh", "os", "country", "education", "urban",
+                                  "gender", "engnat", "age", "hand", "religion", "orientation",
+                                  "race", "voted", "married", "familysize", "eloquence",
+                                  "openness", "trials", "hits", "misses"))
+```
+
+Blub.
+
+# Analysis of online personality test
+
+## Data
+
+### Overview
+
+```{r data-structure}
+str(dt_bigf)
+summary(dt_bigf)
+```
+
+```{r correlation}
+cor(dt_bigf[, -c("hits", "misses", "trials")][, .SD, .SDcols = is.numeric],
+    use = "pairwise.complete.obs") %>%
+  round(1) %>%
+  ggcorrplot::ggcorrplot(method = "circle", type = "lower")
+```
+
+### Eloquence score
+
+```{r plot-eloquence, include=TRUE}
+dnorm_args <- function(x) list(mean = mean(x, na.rm = TRUE), sd = sd(x, na.rm = TRUE))
+
+ggplot(dt_bigf, aes(x = eloquence)) +
+  geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length = 200),
+                 color = "black", fill = "white") +
+  geom_density() +
+  geom_function(fun = dnorm, args = dnorm_args(dt_bigf$eloquence), color = "red")
+
+ggplot(dt_bigf, aes(x = eloquence)) +
+  stat_ecdf() +
+  geom_function(fun = pnorm, args = dnorm_args(dt_bigf$eloquence), color = "red")
+```
+
+### Openness score
+
+```{r plot-openness, include=TRUE, warning=FALSE}
+ggplot(dt_bigf, aes(x = openness)) +
+  geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length = 200),
+                 color = "black", fill = "white") +
+  geom_density() +
+  geom_function(fun = dnorm, args = dnorm_args(dt_bigf$openness), color = "red")
+
+ggplot(dt_bigf, aes(x = openness)) +
+  stat_ecdf() +
+  geom_function(fun = pnorm, args = dnorm_args(dt_bigf$openness), color = "red")
+
+ggplot(dt_bigf, aes(sample = openness)) +
+  geom_qq() +
+  geom_qq_line()
+```
+
+### Survey duration
+
+```{r time-spent}
+dt_bigf[, summary(.SD), .SDcols = patterns("elapse$")]
+```
+
+```{r plot-time, include=TRUE}
+# there are some extreme values
+ggplot(dt_bigf[introelapse < 3000,], aes(x = introelapse)) +
+  geom_histogram(aes(y = ..density..), breaks = seq(1, 3000, length = 100),
+                 color = "black", fill = "white")
+
+dt_bigf[, lapply(.SD, function(x) {
+            ind_long <- x > 3000
+            list(c(sum(!ind_long), mean(x[!ind_long])), c(sum(ind_long), mean(x[ind_long])))
+          })
+        , .SDcols = patterns("elapse$")]
+```
+
+## Pairwise comparisons
+
+```{r todos}
+# TODO: scatter plots with openness
+# TODO: correlation plots - co-linearity is a problem!
+# TODO: contingency tables
+# TODO: VCL to one variable
+```
+
+<!-- continuous -->
+
+### Openness and eloquence
+
+```{r openness-eloquence, include=TRUE}
+ggplot(dt_bigf[!is.na(engnat)], aes(x = eloquence, y = openness)) +
+  geom_jitter(height = 0.01, width = 0.01, alpha = 0.5) +
+  geom_smooth(aes(color = engnat))
+```
+
+### Eloquence and age
+
+```{r eloquence-age, include=TRUE}
+ggplot(dt_bigf, aes(x = age, y = eloquence)) +
+  geom_jitter(height = 0.01, width = 0.3, alpha = 0.5)
+```
+
+### Openness and age
+
+```{r openness-age, include=TRUE}
+ggplot(dt_bigf, aes(x = age, y = openness)) +
+  geom_jitter(height = 0.01, width = 0.1, alpha = 0.5) +
+  geom_smooth()
+```
+
+### Openness and family size
+
+```{r openness-familysize, include=TRUE}
+ggplot(dt_bigf[familysize < 20,], aes(x = familysize, y = openness)) +
+  geom_jitter(height = 0.01, width = 0.35, alpha = 0.5) +
+  geom_smooth()
+```
+
+<!-- discrete -->
+
+### Openness and country
+
+```{r openness-country, include=TRUE}
+ggplot(dt_bigf[(table(country) > 50)[country],], aes(x = country, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and education
+
+```{r openness-education, include=TRUE}
+ggplot(dt_bigf[!is.na(education)], aes(x = education, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and urban
+
+```{r openness-urban, include=TRUE}
+ggplot(dt_bigf[!is.na(urban)], aes(x = urban, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and gender
+
+```{r openness-gender, include=TRUE}
+ggplot(dt_bigf[!is.na(gender),], aes(x = gender, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and engnat
+
+```{r openness-engnat, include=TRUE}
+ggplot(dt_bigf, aes(x = engnat, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Eloquence and engnat
+
+```{r eloquence-engnat, include=TRUE}
+ggplot(dt_bigf, aes(x = engnat, y = eloquence)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
+```
+
+### Eloquence and education
+
+```{r eloquence-education, include=TRUE}
+ggplot(dt_bigf[!is.na(education),], aes(x = education, y = eloquence)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
+```
+
+### Age and education
+
+```{r age-education, include=TRUE}
+ggplot(dt_bigf[!is.na(education),], aes(x = education, y = age)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(age, na.rm = TRUE)])
+```
+
+### Openness and hand
+
+```{r openness-hand, include=TRUE}
+ggplot(dt_bigf[!is.na(hand),], aes(x = hand, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and religion
+
+```{r openness-religion, include=TRUE}
+ggplot(dt_bigf[(table(religion) > 50)[religion],], aes(x = religion, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and orientation
+
+```{r openness-orientation, include=TRUE}
+ggplot(dt_bigf, aes(x = orientation, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and race
+
+```{r openness-race, include=TRUE}
+ggplot(dt_bigf, aes(x = race, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and voted
+
+```{r openness-voted, include=TRUE}
+ggplot(dt_bigf, aes(x = voted, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+
+ggplot(dt_bigf[age > 20], aes(x = voted, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+### Openness and married
+
+```{r openness-married, include=TRUE}
+ggplot(dt_bigf, aes(x = married, y = openness)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
+```
+
+<!-- technical data -->
+
+```{r duration}
+ggplot(dt_bigf[introelapse < 500,], aes(x = introelapse, y = openness)) +
+  geom_jitter(height = 0.01, width = 0.00, alpha = 0.5) +
+  geom_smooth()
+
+ggplot(dt_bigf[testelapse < 1000,], aes(x = testelapse, y = openness)) +
+  geom_jitter(height = 0.01, width = 0.00, alpha = 0.5) +
+  geom_smooth()
+
+ggplot(dt_bigf[surveyelapse < 1000,], aes(x = surveyelapse, y = openness)) +
+  geom_jitter(height = 0.01, width = 0.00, alpha = 0.5) +
+  geom_smooth()
+```
+
+```{r browser-os}
+ggplot(dt_bigf, aes(x = browser, y = openness)) +
+  geom_boxplot()
+
+ggplot(dt_bigf, aes(x = os, y = openness)) +
+  geom_boxplot()
+```
+
+## Modeling openness score
+
+```{r glm}
+# TODO: try centering data
+# TODO: dont forget outliers
+# TODO: choose a nice reference category
+# TODO: variable selection
+# TODO: maybe just a normal model
+m0 <- glm(cbind(hits, misses) ~ education + gender + urban + engnat + hand + religion +
+          orientation + race + voted + married + familysize + eloquence,
+          family = quasibinomial(), data = dt_bigf)
+summary(m0)
+data.table(pred = m0$fitted, val = dt_bigf[as.numeric(names(m0$fitted)), openness]) %$%
+  {density(pred) %>% plot()
+   density(val) %>% lines(col = "red")}
+```
+
+Blub.
+
+# Conclusion
+
+Blub.
+
+<!-- trash -->
+```{r first-attempt, eval=FALSE}
+dt_bigf[, openness := rowSums(.SD) / 50, .SDcols = patterns("^O")]
+0:50 / 50  # possible scores
+# dt_bigf[, patterns("^[ACENOG]") := NULL]
+
+ggplot(dt_bigf, aes(x = openness)) +
+  geom_histogram(aes(y = ..density..), bins = 100, boundary = 0) +
+  geom_function(fun = dnorm, args = list(mean = mean(dt_bigf$openness), sd = sd(dt_bigf$openness))) +
+  geom_density(color = "red")
+
+ggplot(dt_bigf, aes(x = openness)) +
+  stat_ecdf()
+```
+
