@@ -12,8 +12,6 @@ output:
       in_header: preamble.tex
 ---
 
-<!-- To render book from terminal use: Rscript -e "rmarkdown::render('report.Rmd')" -->
-
 <style>
 body {
 text-align: justify}
@@ -30,7 +28,7 @@ Abstract
 
 ```{r setup, include=FALSE}
 # rmarkdown settings
-knitr::opts_chunk$set(fig.align = "center", out.width='80%',
+knitr::opts_chunk$set(fig.align = "center", out.width = '80%',
                       include = FALSE, echo = FALSE, cache = FALSE)
 
 # packages
@@ -39,12 +37,12 @@ library(purrr)
 library(magrittr)
 library(ggplot2); theme_set(theme_bw())
 
+# data
+source("R/prepare-data.R")
+
 # functions
 
 # plots
-
-# data
-source("R/prepare-data.R")
 ```
 
 Blub.
@@ -306,19 +304,54 @@ ggplot(dt_bigf, aes(x = os, y = openness)) +
 
 ## Modeling openness score
 
+
+* TODO: try centering data
+* TODO: dont forget outliers
+* TODO: choose a nice reference category
+* TODO: variable selection
+* TODO: maybe just a normal model
+
 ```{r glm}
-# TODO: try centering data
-# TODO: dont forget outliers
-# TODO: choose a nice reference category
-# TODO: variable selection
-# TODO: maybe just a normal model
+dt_bigf.na_omit <- na.omit(dt_bigf, cols = c("education", "gender", "urban", "engnat", "hand",
+                                             "religion", "orientation", "race", "voted", "married",
+                                             "familysize", "eloquence"))
+
 m0 <- glm(cbind(hits, misses) ~ education + gender + urban + engnat + hand + religion +
           orientation + race + voted + married + familysize + eloquence,
-          family = quasibinomial(), data = dt_bigf)
+          family = quasibinomial(), data = dt_bigf.na_omit)
 summary(m0)
-data.table(pred = m0$fitted, val = dt_bigf[as.numeric(names(m0$fitted)), openness]) %$%
-  {density(pred) %>% plot()
-   density(val) %>% lines(col = "red")}
+```
+
+```{r lm}
+m1 <- lm(openness ~ education + gender + urban + engnat + hand + religion + orientation + race +
+         voted + married + familysize + eloquence, data = dt_bigf.na_omit)
+summary(m1)
+```
+
+```{r plot-model-predictions}
+rbind(
+  data.table(pred = m0$fitted, val = dt_bigf[as.numeric(names(m0$fitted)), openness], m = "0"),
+  data.table(pred = m1$fitted, val = dt_bigf[as.numeric(names(m1$fitted)), openness], m = "1")
+) %>%
+  ggplot(aes(x = val, y = pred, color = m)) +
+  geom_point() +
+  geom_smooth()
+```
+
+```{r variable-selection}
+m_const <- lm(openness ~ 1, data = dt_bigf.na_omit)
+
+m1.sel_both <- step(m1, direction = "both", k = log(nrow(dt_bigf.na_omit)))
+m1.sel_forward <- step(m1, scope = list(lower = m_const, upper = m1),
+                       direction = "forward", k = log(nrow(dt_bigf.na_omit)))
+m1.sel_backward <- step(m1, direction = "backward", k = log(nrow(dt_bigf.na_omit)))
+
+summary(m1.sel_both)
+summary(m1.sel_forward)
+summary(m1.sel_backward)
+```
+
+```{r}
 ```
 
 Blub.
