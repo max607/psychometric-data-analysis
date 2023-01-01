@@ -306,10 +306,8 @@ ggplot(dt_bigf, aes(x = os, y = openness)) +
 
 
 * TODO: try centering data
-* TODO: dont forget outliers
+* TODO: don't forget outlier
 * TODO: choose a nice reference category
-* TODO: variable selection
-* TODO: maybe just a normal model
 
 ```{r glm}
 dt_bigf.na_omit <- na.omit(dt_bigf, cols = c("education", "gender", "urban", "engnat", "hand",
@@ -338,7 +336,7 @@ rbind(
   geom_smooth()
 ```
 
-```{r variable-selection}
+```{r variable-selection1}
 m_const <- lm(openness ~ 1, data = dt_bigf.na_omit)
 
 m1.sel_both <- step(m1, direction = "both", k = log(nrow(dt_bigf.na_omit)))
@@ -351,7 +349,36 @@ summary(m1.sel_forward)
 summary(m1.sel_backward)
 ```
 
-```{r}
+```{r variable-selection2}
+library(BAS)
+
+res_bas <- bas.lm(openness ~ education + gender + urban + engnat + age + hand + religion +
+                    orientation + race + voted + married + familysize + eloquence,
+                  data = dt_bigf.na_omit,
+                  prior = "BIC")
+res_bas %$% data.table(probne0, namesx) %>%
+  ggplot(aes(x = probne0, y = namesx)) +
+  geom_point() +
+  geom_vline(xintercept = 0.5)
+
+
+m3 <- lm(openness ~ education + gender + eloquence, data = dt_bigf.na_omit)
+summary(m3)
+
+extractAIC(m1, k = log(nrow(dt_bigf.na_omit)))
+extractAIC(m_const, k = log(nrow(dt_bigf.na_omit)))
+extractAIC(m1.sel_both, k = log(nrow(dt_bigf.na_omit)))
+extractAIC(m1.sel_forward, k = log(nrow(dt_bigf.na_omit)))
+extractAIC(m1.sel_backward, k = log(nrow(dt_bigf.na_omit)))
+extractAIC(m3, k = log(nrow(dt_bigf.na_omit)))
+```
+
+```{r mgcv}
+library(mgcv)
+
+m4 <- gam(formula = openness ~ education + gender + s(age, bs = "cr", k = 10) +
+          s(eloquence, bs = "cr", k = 10), data = dt_bigf.na_omit, family = gaussian(), method = "REML")
+summary(m4)
 ```
 
 Blub.
