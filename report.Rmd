@@ -1,15 +1,45 @@
 ---
-title: "Report On Big Five, Assignment 29"
-author: "Maximilian Schneider"
-date: "`r format(Sys.time(), '%d.%m.%Y')`"
 documentclass: report
+link-citations: true
 urlcolor: blue
+bibliography: references.bib
+linestretch: 1.5
+fontsize: 12pt
 output:
   bookdown::pdf_document2:
     toc: true
     toc_depth: 3
     includes:
       in_header: preamble.tex
+    extra_dependencies: ["mathptmx"]
+title: |
+  | Assignment 29
+  | Statistical Analysis of Grit Scale Data  \vspace{1cm}
+  | ![](figures/sigillum-lmu.png){width=3cm} \vspace{1cm}
+  | ![](figures/aueb.jpg){width=9cm}         \vspace{1cm}
+subtitle: |
+  | Submitted to the Department of Statistics
+  | of the Athens University of Economics and Business
+author: |
+  | By
+  | Maximilian Schneider
+date: "`r format(Sys.time(), '%d.%m.%Y')`"
+abstract: |
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+  Integer fringilla interdum magna, at sodales ante hendrerit in.
+  Ut mauris justo, sodales sed posuere id, ultrices ut ante.
+  In auctor tellus nulla, nec efficitur tellus finibus id.
+  Vivamus at condimentum sapien, a sodales erat.
+  Nulla nec neque eu purus consequat vestibulum.
+  Vestibulum placerat congue porttitor.
+  In hac habitasse platea dictumst.
+  In hac habitasse platea dictumst.
+  Sed consectetur a quam a posuere.
+  Ut elit leo, lobortis sit amet risus vel, ultrices fringilla nisl.
+  Aliquam ut leo mauris.
+  Suspendisse neque tellus, aliquet ac dignissim vitae, gravida sit amet elit.
+  Ut eget turpis ac sem aliquet scelerisque.
+  Phasellus in maximus est.
 ---
 
 <style>
@@ -22,14 +52,12 @@ text-align: justify}
 }
 </style>
 
-Abstract
-
 # Introduction
 
 ```{r setup, include=FALSE}
 # rmarkdown settings
 knitr::opts_chunk$set(fig.align = "center", out.width = '80%',
-                      include = FALSE, echo = FALSE, cache = FALSE)
+                      include = FALSE, echo = FALSE, cache = FALSE, eval=FALSE)
 
 # packages
 library(data.table)
@@ -45,7 +73,9 @@ source("R/prepare-data.R")
 # plots
 ```
 
-Blub.
+As part of the Data Analysis course of the Athens University of Economics and Business a dataset is to be analyzed.
+This report describes the applied methods and corresponding findings.
+The assigned dataset "grit scale data" originates from the study "Development and Validation of the Short Grit Scale (Grit-S)" [@duckworth2009development].
 
 # Analysis of online personality test
 
