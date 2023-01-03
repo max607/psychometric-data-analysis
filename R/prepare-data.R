@@ -45,12 +45,18 @@ dt_bigf[, eloquence := rowSums(.SD), .SDcols = patterns("^VCL")]
 # start at zero
 dt_bigf[, (names_o) := .SD - 1, .SDcols = names_o]
 
-p_corr <- cor(dt_bigf[, .SD, .SDcols = patterns("^O")], use = "pairwise.complete.obs") %>%
-  round(1) %>%
-  ggcorrplot::ggcorrplot(method = "circle", type = "lower")
+p_corr1 <- cor(dt_bigf[, .SD, .SDcols = patterns("^O")], use = "pairwise.complete.obs") %>%
+  ggcorrplot::ggcorrplot(method = "square", type = "lower", lab = TRUE, digits = 1,
+                         ggtheme = ggplot2::theme_bw, outline.color = "black",
+                         colors = c("#1984c5", "#e2e2e2", "#c23728"), show.legend = FALSE)
 
 openness_negation <- paste0("O", c(2, 4, 6))
 dt_bigf[, (openness_negation) := 4 - .SD, .SDcols = openness_negation]
+
+p_corr2 <- cor(dt_bigf[, .SD, .SDcols = patterns("^O")], use = "pairwise.complete.obs") %>%
+  ggcorrplot::ggcorrplot(method = "square", type = "lower", lab = TRUE, digits = 1,
+                         ggtheme = ggplot2::theme_bw, outline.color = "black",
+                         colors = c("#1984c5", "#e2e2e2", "#c23728"), show.legend = FALSE)
 
 # numbers of missing answers per person (all values are missing for two obs)
 dt_bigf[, O_NA := rowSums(is.na(.SD)), .SDcols = names_o]
