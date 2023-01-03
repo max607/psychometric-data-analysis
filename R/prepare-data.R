@@ -39,11 +39,18 @@ dt_bigf[, (names_o) := lapply(.SD, function(col) ifelse(col == 0, NA, col)), .SD
 # Eloquence ----------------------------------------------------------------------------------------
 vcl_fluke <- paste0("VCL", c(6, 9, 12))
 dt_bigf[, (vcl_fluke) := lapply(.SD, function(col) as.integer(col == 0)), .SDcols = vcl_fluke]
-dt_bigf[, eloquence := rowMeans(.SD), .SDcols = patterns("^VCL")]
+dt_bigf[, eloquence := rowSums(.SD), .SDcols = patterns("^VCL")]
 
 # Openness -----------------------------------------------------------------------------------------
 # start at zero
 dt_bigf[, (names_o) := .SD - 1, .SDcols = names_o]
+
+p_corr <- cor(dt_bigf[, .SD, .SDcols = patterns("^O")], use = "pairwise.complete.obs") %>%
+  round(1) %>%
+  ggcorrplot::ggcorrplot(method = "circle", type = "lower")
+
+openness_negation <- paste0("O", c(2, 4, 6))
+dt_bigf[, (openness_negation) := 4 - .SD, .SDcols = openness_negation]
 
 # numbers of missing answers per person (all values are missing for two obs)
 dt_bigf[, O_NA := rowSums(is.na(.SD)), .SDcols = names_o]
