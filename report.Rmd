@@ -11,7 +11,7 @@ output:
     toc_depth: 3
     includes:
       in_header: preamble.tex
-    extra_dependencies: ["mathptmx"]
+    extra_dependencies: ["mathptmx", "longtable"]
 title: |
   | Assignment 29
   | Statistical Analysis of the Grit Scale Dataset \vspace{1cm}
@@ -57,7 +57,7 @@ text-align: justify}
 ```{r setup, include=FALSE}
 # rmarkdown settings
 knitr::opts_chunk$set(fig.align = "center", out.width = '80%', include = FALSE, echo = FALSE,
-                      cache = FALSE)
+                      cache = FALSE, message = FALSE, warning = FALSE)
 
 # packages
 library(data.table)
@@ -87,7 +87,10 @@ summary(dt_bigf)
 
 The given grit scale dataset consists of various measurements on 4270 individuals.
 After preparing the dataset according to the assignment, there are 22 distinct variables.
-They can be divided into 7 automatically collected technical information about the device used to complete the questionnaire, 13 personal details about the subject and two generated scores, eloquence and openness, which are described in Sections \@ref(eloquence-score) and \@ref(openness-score), respectively.
+They can be divided into 8 automatically collected technical information about the device used to complete the questionnaire, 12 personal details about the subject and two generated scores, eloquence and openness, which are described in Sections \@ref(eloquence-score) and \@ref(openness-score), respectively.
+
+The goal is to find a suitable regression model for the openness score using the rest of the variables and by applying the methods learned in class.
+While all 12 personal details (education, urban, gender, native language English, age, hand, religion, orientation, race, voted, married, family size) will be considered, the technical information is only used to exclude unrealistic observations.
 
 ### Eloquence score
 
@@ -120,6 +123,8 @@ p <- ggplot(dt_bigf, aes(x = eloquence)) +
 
 ### Openness score
 
+<!-- TODO: Mention somewhere this is going to be the response -->
+
 In order to asses the openness of an individual (in terms of the Big Five personality dimensions) ten questions were asked, which are to be aggregated into a single score.
 Its calculation is a bit more involved compared to the eloquence score.
 
@@ -132,14 +137,14 @@ Its calculation is a bit more involved compared to the eloquence score.
 ```{r plot-openness-items, include=TRUE, fig.cap='(ref:plot-openness-items)'}
 cowplot::plot_grid(p_corr1, p_corr2)
 ```
-(ref:plot-openness-items) Pearson correlation of items testing the Big Five personality dimension "openness" before and after transforming items 2, 4 and 6.
+(ref:plot-openness-items) Pairwise Pearson correlations of items testing the Big Five personality dimension "openness" before and after transforming items 2, 4 and 6.
 
 Taking into account these points, the item scores are summed up and divided by four times the number of items answered.
 This results in a pseudo continuous score ranging from zero to one, with 60 unique values.
 The associated histogram is shown in Figure \@ref(fig:plot-openness).
 Possible scores are multiples of $\frac{1}{40}$ (all ten openness items completed), $\frac{1}{36}$ (nine openness items completed), $\frac{1}{32}$ and so on.
 
-```{r plot-openness, include=TRUE, fig.cap='(ref:plot-openness)', warning=FALSE}
+```{r plot-openness, include=TRUE, fig.cap='(ref:plot-openness)'}
 p <- ggplot(dt_bigf, aes(x = openness)) +
   geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length = 200), color = "#606161",
                  fill = "#606161") +
@@ -160,187 +165,61 @@ p <- ggplot(dt_bigf, aes(sample = openness)) +
   geom_qq_line()
 ```
 
-```{r}
-# TODO: remove
-knitr::opts_chunk$set(eval = FALSE)
+## Pairwise associations with openness
+
+### Continuous
+
+* Eloquence makes sense.
+* There should be no correlation with age.
+* Figure \@ref(fig:openness-continuous)
+
+```{r openness-continuous, include=TRUE, fig.cap='(ref:openness-eloquence)'}
+p1 <- ggplot(dt_bigf, aes(x = eloquence, y = openness)) +
+  geom_jitter(height = 0, width = 0.3, alpha = 0.3) +
+  geom_smooth(color = "#0075be", size = 1) +
+  labs(x = "Eloquence score", y = "Openness score")
+
+p2 <- ggplot(dt_bigf, aes(x = age, y = openness)) +
+  geom_jitter(height = 0, width = 0.3, alpha = 0.3) +
+  geom_smooth(color = "#0075be", size = 1) +
+  labs(x = "Age", y = "Openness score")
+
+p3 <- ggplot(dt_bigf[familysize < 20,], aes(x = familysize, y = openness)) +
+  geom_jitter(height = 0, width = 0.3, alpha = 0.3) +
+  geom_smooth(color = "#0075be", size = 1) +
+  labs(x = "Family size", y = "Openness score")
+
+cowplot::plot_grid(p1, p2, p3, nrow = 2)
+```
+(ref:openness-eloquence) Fourth figure.
+
+### Discrete
+
+```{r openness-discrete, include = TRUE}
+f_measurements <- function(dt, var) {
+  n_na <- sum(is.na(dt[, .SD, .SDcols = var]))
+  dt[, .(mean = mean(openness, na.rm = TRUE), sd = sd(openness, na.rm = TRUE),
+         median = median(openness, na.rm = TRUE),
+         NAs_O = scales::percent(sum(is.na(openness)) / .N, accuracy = 0.01)), by = var] %>%
+    setnames(old = var, new = "level") %>%
+    .[is.na(level), level := paste0("NA (", n_na, ")")] %>%
+    .[, covariate := var] %>%
+    .[]
+}
+
+c("education", "urban", "gender", "engnat", "hand", "religion", "orientation", "race", "voted",
+  "married") %>%
+  lapply(f_measurements, dt = dt_bigf) %>%
+  do.call(what = rbind) %>%
+  setcolorder(c("covariate", "level", "median", "mean", "sd", "NAs_O")) %>%
+  setnames(c("Covariate", "Level", "Median", "Mean", "SD", "Share NAs")) %>%
+  knitr::kable(digits = 2, booktabs = TRUE, longtable = TRUE) %>%
+  kableExtra::collapse_rows(columns = 1, latex_hline = "major", valign = "top") %>%
+  kableExtra::kable_styling(latex_options = "repeat_header")
 ```
 
-### Survey duration
-
-```{r time-spent}
-dt_bigf[, summary(.SD), .SDcols = patterns("elapse$")]
-```
-
-```{r plot-time, include=TRUE}
-# there are some extreme values
-ggplot(dt_bigf[introelapse < 3000,], aes(x = introelapse)) +
-  geom_histogram(aes(y = ..density..), breaks = seq(1, 3000, length = 100),
-                 color = "black", fill = "white")
-
-dt_bigf[, lapply(.SD, function(x) {
-            ind_long <- x > 3000
-            list(c(sum(!ind_long), mean(x[!ind_long])), c(sum(ind_long), mean(x[ind_long])))
-          })
-        , .SDcols = patterns("elapse$")]
-```
-
-## Pairwise comparisons
-
-<!-- continuous -->
-
-### Openness and eloquence
-
-```{r openness-eloquence, include=TRUE}
-ggplot(dt_bigf[!is.na(engnat)], aes(x = eloquence, y = openness)) +
-  geom_jitter(height = 0.01, width = 0.01, alpha = 0.5) +
-  geom_smooth(aes(color = engnat))
-```
-
-### Eloquence and age
-
-```{r eloquence-age, include=TRUE}
-ggplot(dt_bigf, aes(x = age, y = eloquence)) +
-  geom_jitter(height = 0.01, width = 0.3, alpha = 0.5)
-```
-
-### Openness and age
-
-```{r openness-age, include=TRUE}
-ggplot(dt_bigf, aes(x = age, y = openness)) +
-  geom_jitter(height = 0.01, width = 0.1, alpha = 0.5) +
-  geom_smooth()
-```
-
-### Openness and family size
-
-```{r openness-familysize, include=TRUE}
-ggplot(dt_bigf[familysize < 20,], aes(x = familysize, y = openness)) +
-  geom_jitter(height = 0.01, width = 0.35, alpha = 0.5) +
-  geom_smooth()
-```
-
-<!-- discrete -->
-
-### Openness and country
-
-```{r openness-country, include=TRUE}
-ggplot(dt_bigf[(table(country) > 50)[country],], aes(x = country, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and education
-
-```{r openness-education, include=TRUE}
-ggplot(dt_bigf[!is.na(education)], aes(x = education, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and urban
-
-```{r openness-urban, include=TRUE}
-ggplot(dt_bigf[!is.na(urban)], aes(x = urban, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and gender
-
-```{r openness-gender, include=TRUE}
-dt_bigf[gender %in% c("male", "female")
-        , .(mean = mean(openness, na.rm = TRUE), median = median(openness, na.rm = TRUE))
-        , by = "gender"]
-ggplot(dt_bigf[!is.na(gender),], aes(x = gender, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and engnat
-
-```{r openness-engnat, include=TRUE}
-ggplot(dt_bigf, aes(x = engnat, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Eloquence and engnat
-
-```{r eloquence-engnat, include=TRUE}
-ggplot(dt_bigf, aes(x = engnat, y = eloquence)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
-```
-
-### Eloquence and education
-
-```{r eloquence-education, include=TRUE}
-ggplot(dt_bigf[!is.na(education),], aes(x = education, y = eloquence)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
-```
-
-### Age and education
-
-```{r age-education, include=TRUE}
-ggplot(dt_bigf[!is.na(education),], aes(x = education, y = age)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(age, na.rm = TRUE)])
-```
-
-### Openness and hand
-
-```{r openness-hand, include=TRUE}
-ggplot(dt_bigf[!is.na(hand),], aes(x = hand, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and religion
-
-```{r openness-religion, include=TRUE}
-ggplot(dt_bigf[(table(religion) > 50)[religion],], aes(x = religion, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and orientation
-
-```{r openness-orientation, include=TRUE}
-ggplot(dt_bigf, aes(x = orientation, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and race
-
-```{r openness-race, include=TRUE}
-ggplot(dt_bigf, aes(x = race, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and voted
-
-```{r openness-voted, include=TRUE}
-ggplot(dt_bigf, aes(x = voted, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-
-ggplot(dt_bigf[age > 20], aes(x = voted, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-### Openness and married
-
-```{r openness-married, include=TRUE}
-ggplot(dt_bigf, aes(x = married, y = openness)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(openness, na.rm = TRUE)])
-```
-
-<!-- technical data -->
+<!--
+## Technical data
 
 ```{r duration}
 ggplot(dt_bigf[introelapse < 500,], aes(x = introelapse, y = openness)) +
@@ -363,6 +242,37 @@ ggplot(dt_bigf, aes(x = browser, y = openness)) +
 ggplot(dt_bigf, aes(x = os, y = openness)) +
   geom_boxplot()
 ```
+
+### Eloquence and engnat
+
+```{r eloquence-engnat, include=TRUE}
+ggplot(dt_bigf, aes(x = engnat, y = eloquence)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
+```
+
+### Eloquence and education
+
+```{r eloquence-education, include=TRUE}
+ggplot(dt_bigf[!is.na(education),], aes(x = education, y = eloquence)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
+```
+-->
+
+```{r}
+# TODO: remove
+knitr::opts_chunk$set(eval = FALSE)
+```
+
+### Age and education
+
+```{r age-education, include=TRUE}
+ggplot(dt_bigf[!is.na(education),], aes(x = education, y = age)) +
+  geom_boxplot() +
+  geom_hline(yintercept = dt_bigf[, median(age, na.rm = TRUE)])
+```
+
 
 ## Statistical models
 
