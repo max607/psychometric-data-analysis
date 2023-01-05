@@ -54,7 +54,7 @@ text-align: justify}
 
 # Introduction
 
-```{r setup, include=FALSE}
+```{r setup1, include=FALSE}
 # rmarkdown settings
 knitr::opts_chunk$set(fig.align = "center", out.width = '80%', include = FALSE, echo = FALSE,
                       cache = FALSE, message = FALSE, warning = FALSE)
@@ -64,10 +64,13 @@ library(data.table)
 library(purrr)
 library(magrittr)
 library(ggplot2); theme_set(theme_bw())
+```
 
-# code
+```{r setup2, cache=FALSE}
 source("R/prepare-data.R")
 source("R/my-functions.R")
+source("R/my-plots.R")
+source("R/my-models.R")
 ```
 
 As part of the Data Analysis course of the Athens University of Economics and Business a dataset is to be analyzed.
@@ -219,7 +222,7 @@ c("education", "urban", "gender", "engnat", "hand", "religion", "orientation", "
 ```
 
 <!--
-## Technical data
+### Technical data
 
 ```{r duration}
 ggplot(dt_bigf[introelapse < 500,], aes(x = introelapse, y = openness)) +
@@ -258,12 +261,6 @@ ggplot(dt_bigf[!is.na(education),], aes(x = education, y = eloquence)) +
   geom_boxplot() +
   geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
 ```
--->
-
-```{r}
-# TODO: remove
-knitr::opts_chunk$set(eval = FALSE)
-```
 
 ### Age and education
 
@@ -272,124 +269,22 @@ ggplot(dt_bigf[!is.na(education),], aes(x = education, y = age)) +
   geom_boxplot() +
   geom_hline(yintercept = dt_bigf[, median(age, na.rm = TRUE)])
 ```
+-->
 
+```{r}
+# TODO: remove
+knitr::opts_chunk$set(eval = FALSE)
+```
 
-## Statistical models
-
+## Linear model with smooth effect
 
 * TODO: try centering data
 * TODO: don't forget outlier
 * TODO: choose a nice reference category
-* TODO: VCL to one variable
+* No need for checking correlation between covariates: exhaustive model selection (variables that don't add new information are dropped)
 
-```{r tmp1}
-m_glm <- glm(cbind(hits, misses) ~ education + gender + eloquence, family = binomial(),
-             data = dt_bigf)
-
-m_lm <- lm(openness ~ education + gender + eloquence, data = dt_bigf)
-
-library(mgcv)
-m_gam <- gam(cbind(hits, misses) ~ education + gender + s(eloquence, bs = "cr", k = 10),
-             data = dt_bigf, family = binomial(), optimizer = "efs")
-
-m_lam <- gam(openness ~ education + gender + s(eloquence, bs = "cr", k = 10),
-             data = dt_bigf, family = gaussian(), optimizer = "efs")
-
-dt_bigf[used_obs(m_glm, .N), paste0("pred_", c("lm", "lam", "glm", "gam")) :=
-        list(predict(m_lm),
-             predict(m_lam),
-             predict(m_glm, type = "response"),
-             predict(m_gam, type = "response"))]
-
-melt(dt_bigf, measure.vars = paste0("pred_", c("lm", "glm"))) %>%
-  ggplot(aes(x = openness, y = value, color = variable)) +
-  geom_jitter(alpha = 0.5, height = 0) +
-  geom_abline(intercept = 0, slope = 1) +
-  geom_smooth(se = FALSE) +
-  ylim(0, 1)
-```
-
-```{r glm}
-dt_bigf.na_omit <- na.omit(dt_bigf, cols = c("education", "gender", "urban", "engnat", "hand",
-                                             "religion", "orientation", "race", "voted", "married",
-                                             "familysize", "eloquence"))
-
-m0 <- glm(cbind(hits, misses) ~ education + gender + urban + engnat + hand + religion +
-          orientation + race + voted + married + familysize + eloquence,
-          family = quasibinomial(), data = dt_bigf.na_omit)
-summary(m0)
-```
-
-```{r lm}
-m1 <- lm(openness ~ education + gender + urban + engnat + hand + religion + orientation + race +
-         voted + married + familysize + eloquence, data = dt_bigf.na_omit)
-summary(m1)
-```
-
-```{r plot-model-predictions}
-rbind(
-  data.table(pred = m0$fitted, val = dt_bigf[as.numeric(names(m0$fitted)), openness], m = "0"),
-  data.table(pred = m1$fitted, val = dt_bigf[as.numeric(names(m1$fitted)), openness], m = "1")
-) %>%
-  ggplot(aes(x = val, y = pred, color = m)) +
-  geom_point() +
-  geom_smooth()
-```
-
-```{r correlation}
-cor(dt_bigf[, -c("hits", "misses", "trials")][, .SD, .SDcols = is.numeric],
-    use = "pairwise.complete.obs") %>%
-  round(1) %>%
-  ggcorrplot::ggcorrplot(method = "circle", type = "lower")
-```
-
-```{r variable-selection1}
-m_const <- lm(openness ~ 1, data = dt_bigf.na_omit)
-
-m1.sel_both <- step(m1, direction = "both", k = log(nrow(dt_bigf.na_omit)))
-m1.sel_forward <- step(m1, scope = list(lower = m_const, upper = m1),
-                       direction = "forward", k = log(nrow(dt_bigf.na_omit)))
-m1.sel_backward <- step(m1, direction = "backward", k = log(nrow(dt_bigf.na_omit)))
-
-summary(m1.sel_both)
-summary(m1.sel_forward)
-summary(m1.sel_backward)
-```
-
-```{r variable-selection2}
-library(BAS)
-
-res_bas <- bas.lm(openness ~ education + gender + urban + engnat + age + hand + religion +
-                    orientation + race + voted + married + familysize + eloquence,
-                  # data = dt_bigf.na_omit,
-                  data = dt_bigf,
-                  prior = "BIC")
-res_bas %$% data.table(probne0, namesx) %>%
-  ggplot(aes(x = probne0, y = namesx)) +
-  geom_point() +
-  geom_vline(xintercept = 0.5)
-
-
-m3 <- lm(openness ~ education + gender + eloquence, data = dt_bigf.na_omit)
-summary(m3)
-
-extractAIC(m1, k = log(nrow(dt_bigf.na_omit)))
-extractAIC(m_const, k = log(nrow(dt_bigf.na_omit)))
-extractAIC(m1.sel_both, k = log(nrow(dt_bigf.na_omit)))
-extractAIC(m1.sel_forward, k = log(nrow(dt_bigf.na_omit)))
-extractAIC(m1.sel_backward, k = log(nrow(dt_bigf.na_omit)))
-extractAIC(m3, k = log(nrow(dt_bigf.na_omit)))
-```
-
-```{r mgcv}
-library(mgcv)
-
-m4 <- gam(formula = openness ~ education + gender + s(age, bs = "cr", k = 10) +
-          s(eloquence, bs = "cr", k = 10), data = dt_bigf.na_omit, family = gaussian(), method = "REML")
-summary(m4)
-```
-
-Blub.
+* Variable selection: Use BIC or else nothing gets filtered
+* Search complete model space, because I can
 
 # Conclusion
 
@@ -398,6 +293,14 @@ Blub.
 # References
 
 <div id="refs"></div>
+
+# (APPENDIX) Appendix {-}
+
+# Model selection
+
+* Binomial model
+* Quasibinomial
+* Estimation
 
 <!-- trash -->
 ```{r first-attempt, eval=FALSE}
