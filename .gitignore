@@ -43,3 +43,7 @@ Session.vim
 
 # pdf
 report.pdf
+
+# data
+complete-search-aic-old.rds
+complete-search-bic.rds
