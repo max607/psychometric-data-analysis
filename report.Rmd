@@ -54,7 +54,7 @@ text-align: justify}
 
 # Introduction
 
-```{r setup1, include=FALSE}
+```{r setup, include=FALSE}
 # rmarkdown settings
 knitr::opts_chunk$set(fig.align = "center", out.width = '80%', include = FALSE, echo = FALSE,
                       cache = FALSE, message = FALSE, warning = FALSE)
@@ -64,18 +64,24 @@ library(data.table)
 library(purrr)
 library(magrittr)
 library(ggplot2); theme_set(theme_bw())
-```
 
-```{r setup2, cache=FALSE}
+# code
 source("R/prepare-data.R")
 source("R/my-functions.R")
 source("R/my-plots.R")
 source("R/my-models.R")
 ```
 
-As part of the Data Analysis course of the Athens University of Economics and Business a dataset is to be analyzed.
-This report describes the applied methods and corresponding findings.
-The assigned dataset "grit scale data" originates from the study "Development and Validation of the Short Grit Scale (Grit-S)" [@duckworth2009development].
+The Big Five personality dimensions are a well known concept from the field of psychology.
+They are Extraversion, Neuroticism, Agreeableness, Conscientiousness and Openness. \
+As part of the Data Analysis course of the Athens University of Economics and Business the "grit scale dataset" is to be analyzed.
+The online questionnaire data originates from the study "Development and Validation of the Short Grit Scale (Grit-S)" of @duckworth2009development and comprises questions measuring the different International Personality Item Pool (IPIP) personality characteristics as well as demographic data of the participants.
+This report focuses on the dimension Openness with the goal to explore its relationships to the other variables using a linear model.
+Openness is characterized by a strong agreement to statements like "I have a vivid imagination" or "I am full of ideas", but also "I use difficult words".
+
+In the following, Section \@ref(grit-scale-dataset) gives a detailed overview of all available items as well as a description on how the aggregated variables Eloquence and Openness are formed.
+Afterwards Section \@ref(pairwise-associations-with-openness) explores the pairwise associations of the Openness score with the Eloquence score and the demographic data.
+Lastly, Section \@ref(linear-model-with-smooth-effect) describes the analysis of the Openness score dependent on the other variables via a linear model, where model selection is performed using a complete search of the model space according to the Akaike information criterion (AIC).
 
 # Modeling of the openness score
 
@@ -83,17 +89,14 @@ The assigned dataset "grit scale data" originates from the study "Development an
 
 ### Overview
 
-```{r data-structure}
-str(dt_bigf)
-summary(dt_bigf)
-```
-
-The given grit scale dataset consists of various measurements on 4270 individuals.
+The "grit scale data" consists of various measurements on 4270 individuals.
 After preparing the dataset according to the assignment, there are 22 distinct variables.
-They can be divided into 8 automatically collected technical information about the device used to complete the questionnaire, 12 personal details about the subject and two generated scores, eloquence and openness, which are described in Sections \@ref(eloquence-score) and \@ref(openness-score), respectively.
-
-The goal is to find a suitable regression model for the openness score using the rest of the variables and by applying the methods learned in class.
-While all 12 personal details (education, urban, gender, native language English, age, hand, religion, orientation, race, voted, married, family size) will be considered, the technical information is only used to exclude unrealistic observations.
+They can be divided into 8 automatically collected technical information about the device used to complete the questionnaire, 12 personal details about the subject and two generated scores, eloquence and openness, which are described in Sections \@ref(eloquence-score) and \@ref(openness-score), respectively. \
+While all 12 personal details (education, urban, gender, native language English, age, hand, religion, orientation, race, voted, married, family size) are considered, the technical information is only used to exclude unrealistic observations.
+Because the average person took about 10 minutes to fill out the Big Five personality test (2.5% quantile: 113 seconds, 97.5% quantile: 930 seconds), 8 observations are excluded, where individuals finished the test in under a minute.
+This indicates that their questions are probably poorly answered. \
+In the search for the best model according to the AIC additional `r nrow(dt_bigf) - nrow(na.omit(dt_bigf, cols = c(vars_full, "openness")))` observations are discarded because of missing values.
+The final model uses all observations that are complete with regard to the included covariates ($n =$ `r nrow(na.omit(dt_bigf, cols = c(res[1, vars][[1]], "openness")))`).
 
 ### Eloquence score
 
@@ -221,7 +224,7 @@ c("education", "urban", "gender", "engnat", "hand", "religion", "orientation", "
   kableExtra::kable_styling(latex_options = "repeat_header")
 ```
 
-<!--
+<!-- trash
 ### Technical data
 
 ```{r duration}
@@ -282,9 +285,15 @@ knitr::opts_chunk$set(eval = FALSE)
 * TODO: don't forget outlier
 * TODO: choose a nice reference category
 * No need for checking correlation between covariates: exhaustive model selection (variables that don't add new information are dropped)
-
 * Variable selection: Use BIC or else nothing gets filtered
 * Search complete model space, because I can
+
+To model the openness score all variables are potentially included.
+Because of the Figures pertaining to age and eloquence, the effects are models smoothly.
+The final model is selected via a complete search of the model space and using the model with the lowest BIC.
+BIC, because I don't want to interpret so many coefficients.
+
+
 
 # Conclusion
 
@@ -302,7 +311,7 @@ Blub.
 * Quasibinomial
 * Estimation
 
-<!-- trash -->
+<!-- trash
 ```{r first-attempt, eval=FALSE}
 dt_bigf[, openness := rowSums(.SD) / 50, .SDcols = patterns("^O")]
 0:50 / 50  # possible scores
@@ -316,4 +325,4 @@ ggplot(dt_bigf, aes(x = openness)) +
 ggplot(dt_bigf, aes(x = openness)) +
   stat_ecdf()
 ```
-
+-->

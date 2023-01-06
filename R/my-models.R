@@ -1,16 +1,16 @@
 library(mgcv)
 library(purrr)
 
+if (Sys.info()[["sysname"]] == "Linux") options(mc.cores = 3) else options(mc.cores = 1)
+
 # Formulas -----------------------------------------------------------------------------------------
 
-make_formula <- function(vars, response, id_splines = NULL) {
-  if (!is.null(id_splines)) {
+make_formula <- function(vars, response, id_splines = integer(0)) {
+  if (length(id_splines) > 0) {
     vars[id_splines] <- paste0("s(", vars[id_splines], ", bs = 'cr', k = 10)")
   }
 
-  paste(vars, collapse = " + ") %>%
-    paste(response, "~", .) %>%
-    as.formula()
+  paste(vars, collapse = " + ") %>% paste(response, "~", .)
 }
 
 vars_full <- c("education", "gender", "urban", "engnat", "age", "hand", "religion", "orientation",
@@ -21,36 +21,44 @@ vars_full <- c("education", "gender", "urban", "engnat", "age", "hand", "religio
 ## Model space - complete search -------------------------------------------------------------------
 
 search_all_models <- function(dt, vars, response, id_splines, run = TRUE) {
+
+  # use same data for all models
   dt_fix <- na.omit(dt, cols = c(vars, response))
 
-  vars[id_splines] <- paste0("s(", vars[id_splines], ", bs = 'cr', k = 10)")
-
-  all_formulas <- seq_along(vars) %>%
+  # formulate all models
+  all_combinations <- seq_along(vars) %>%
     lapply(combn, x = vars, simplify = FALSE) %>%
     flatten() %>%
     lapply(unlist) %>%
-    c("1", .) %>%
-    lapply(paste, collapse = " + ") %>%
-    sapply(function(form) paste(response, "~", form))
+    c("1", .)
 
+  all_formulas <- lapply(all_combinations, function(vec_names, response, vars, id_splines) {
+    make_formula(vec_names, response, which(vec_names %in% vars[id_splines]))
+  }, response = response, vars = vars, id_splines = id_splines)
+
+  # for tests
   if (!run) return(all_formulas)
 
-  vec_bic <- sapply(all_formulas, function(form) {
-    BIC(gam(as.formula(form), data = dt_fix, family = gaussian(), method = "REML"))
-  })
+  # this may take a while
+  vec_aic <- parallel::mclapply(all_formulas, function(form) {
+    AIC(gam(as.formula(form), data = dt_fix, family = gaussian(), method = "REML"))
+  }) %>% unlist()
 
   # return
   message("Dropped ", nrow(dt) - nrow(dt_fix), " observations.")
-  data.table(formula = all_formulas, BIC = vec_bic) %>%
-    setkey("BIC")
+  data.table(AIC = vec_aic, formula = all_formulas, vars = all_combinations) %>%
+    setkey("AIC")
 }
 
-if (file.exists("complete-search.rds")) {
-  res <- readRDS("complete-search.rds")
+if (file.exists("complete-search-aic.rds")) {
+  res <- readRDS("complete-search-aic.rds")
   setDT(res)
 } else {
   res <- search_all_models(dt_bigf, vars = vars_full, response = "openness", id_splines = c(5, 13))
 }
+
+probs <- sapply(2:10, function(i) exp((res[1, AIC] - res[i, AIC]) / 2))
+c(1, probs) / sum(1, probs)
 
 ## Final model - all complete observations ---------------------------------------------------------
 

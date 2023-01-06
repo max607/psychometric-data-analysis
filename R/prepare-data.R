@@ -82,14 +82,11 @@ setcolorder(dt_bigf, neworder = c("introelapse", "testelapse", "surveyelapse", "
 # Technical sanity checks --------------------------------------------------------------------------
 # dt_bigf[, summary(.SD), .SDcols = patterns("elapse$")]
 
-# # there are some extreme values
-# ggplot(dt_bigf[introelapse < 3000,], aes(x = introelapse)) +
-#   geom_histogram(aes(y = ..density..), breaks = seq(1, 3000, length = 100),
-#                  color = "black", fill = "white")
+# there are some extreme values
+# ggplot(dt_bigf[testelapse < 300,], aes(x = testelapse)) +
+#   geom_histogram(breaks = seq(0, 300, length = 500), color = "black", fill = "black") +
+#   geom_hline(yintercept = 1)
 
-# dt_bigf[, lapply(.SD, function(x) {
-#             ind_long <- x > 3000
-#             list(c(sum(!ind_long), mean(x[!ind_long])), c(sum(ind_long), mean(x[ind_long])))
-#           })
-#         , .SDcols = patterns("elapse$")]
+# filter 8 people who were way to quick
+dt_bigf <- dt_bigf[testelapse > 75,]
 
