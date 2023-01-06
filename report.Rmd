@@ -83,7 +83,7 @@ In the following, Section \@ref(grit-scale-dataset) gives a detailed overview of
 Afterwards Section \@ref(pairwise-associations-with-openness) explores the pairwise associations of the Openness score with the Eloquence score and the demographic data.
 Lastly, Section \@ref(linear-model-with-smooth-effect) describes the analysis of the Openness score dependent on the other variables via a linear model, where model selection is performed using a complete search of the model space according to the Akaike information criterion (AIC).
 
-# Modeling of the openness score
+# Modeling of the Openness score
 
 ## Grit Scale Dataset
 
@@ -91,7 +91,7 @@ Lastly, Section \@ref(linear-model-with-smooth-effect) describes the analysis of
 
 The "grit scale data" consists of various measurements on 4270 individuals.
 After preparing the dataset according to the assignment, there are 22 distinct variables.
-They can be divided into 8 automatically collected technical information about the device used to complete the questionnaire, 12 personal details about the subject and two generated scores, eloquence and openness, which are described in Sections \@ref(eloquence-score) and \@ref(openness-score), respectively. \
+They can be divided into 8 automatically collected technical information about the device used to complete the questionnaire, 12 personal details about the subject and two generated scores, Eloquence and Openness, which are described in Sections \@ref(eloquence-score) and \@ref(openness-score), respectively. \
 While all 12 personal details (age, dominant hand, education, family size, gender, marital status, native language English (yes/no), race, religion, sexual orientation, type of area in childhood, voted in a national election past year) are considered in the analysis, the technical information (browser type, duration of completion of questionnaire parts (3), ISO country code, operating system, screen size (height and width)) is only used to exclude unrealistic observations.
 In this regard 8 observations discarded, where the Big Five personality test was finished in under a minute.
 This is most likely too short, compared to an average completion time of about 10 minutes (2.5% quantile: 113 seconds, 97.5% quantile: 930 seconds).
@@ -118,7 +118,7 @@ p <- ggplot(dt_bigf, aes(x = eloquence)) +
   labs(x = "Eloquence score", y = "Number of observations")
 p
 ```
-(ref:plot-eloquence) Barplot illustrating the empirical distribution of the eloquence score. It shows the number of study participants by number of correctly marked boxes in a checklist about the definitions of words.
+(ref:plot-eloquence) Barplot illustrating the empirical distribution of the Eloquence score. It shows the number of study participants by number of correctly marked boxes in a checklist about the definitions of words.
 
 ```{r}
 p <- ggplot(dt_bigf, aes(x = eloquence)) +
@@ -134,24 +134,26 @@ p <- ggplot(dt_bigf, aes(x = eloquence)) +
 
 ### Openness score
 
-In order to asses the openness of an individual (in terms of the Big Five personality dimensions) ten questions were asked, which are to be aggregated into a single score.
-Its calculation is a bit more involved compared to the eloquence score.
+In order to asses the Openness of an individual (in terms of the Big Five personality dimensions) ten questions were asked, which are to be aggregated into a single score.
+Its calculation is a bit more involved compared to the Eloquence score.
 
-1) The openness items are measured on a Likert-type scale ranging from 0 (Disagree strongly) to 4 (Agree strongly).
+1) The Openness items are measured on a Likert-type scale ranging from 0 (Disagree strongly) to 4 (Agree strongly).
 1) There is the option to not answer the question.
-1) Questions 2, 4 and 6 are formulated in a way that a higher number indicates a lower openness.
-   This shows up in Figure \@ref(fig:plot-openness-items), which depicts the correlation of the individual openness items.
-   For these measures $4 - x_\text{O}$ is considered.
+1) Questions 2, 4 and 6 are formulated in a way that a higher number indicates a lower Openness.
+   This can be seen in Figure \@ref(fig:plot-openness-items), which depicts the pairwise Pearson correlations of the individual Openness items.
+   The mentioned items correlate positively with each other, but negatively with the rest.
+   After transforming these measures using $X^*_\text{O} = 4 - X_\text{O}$ all items are positively correlated.
 
 ```{r plot-openness-items, include=TRUE, fig.cap='(ref:plot-openness-items)'}
 cowplot::plot_grid(p_corr1, p_corr2)
 ```
-(ref:plot-openness-items) Pairwise Pearson correlations of items testing the Big Five personality dimension "openness" before and after transforming items 2, 4 and 6.
+(ref:plot-openness-items) Pairwise Pearson correlations of items testing the Big Five personality dimension "Openness" before and after transforming items 2, 4 and 6.
 
-Taking into account these points, the item scores are summed up and divided by four times the number of items answered.
-This results in a pseudo continuous score ranging from zero to one, with 60 unique values.
+Taking these points into account, the single items are summed up and divided by four times the number of items answered.
+This results in a pseudo continuous score ranging from zero to one, with `r dt_bigf[, length(unique(openness))]` unique values.
 The associated histogram is shown in Figure \@ref(fig:plot-openness).
-Possible scores are multiples of $\frac{1}{40}$ (all ten openness items completed), $\frac{1}{36}$ (nine openness items completed), $\frac{1}{32}$ and so on.
+Possible scores are multiples of $\frac{1}{40}$ (all ten openness items completed), $\frac{1}{36}$ (nine Openness items completed), $\frac{1}{32}$ and so on.
+Additionally, the density of a normal distribution with equal mean and variance as the Openness score is drawn in blue, next to a density estimate using Silverman's "rule of thumb" [@silverman1986density].
 
 ```{r plot-openness, include=TRUE, fig.cap='(ref:plot-openness)'}
 p <- ggplot(dt_bigf, aes(x = openness)) +
@@ -162,7 +164,7 @@ p <- ggplot(dt_bigf, aes(x = openness)) +
   labs(x = "Openness score", y = "Density")
 p
 ```
-(ref:plot-openness) Second figure.
+(ref:plot-openness) Histogram of pseudo continuous Openness score. Additionally, the density of a normal distribution with equal mean and variance as the Openness score is drawn in blue, next to a density estimate using Silverman's "rule of thumb" [@silverman1986density].
 
 ```{r}
 p <- ggplot(dt_bigf, aes(x = openness)) +
@@ -174,7 +176,7 @@ p <- ggplot(dt_bigf, aes(sample = openness)) +
   geom_qq_line()
 ```
 
-## Pairwise associations with openness
+## Pairwise associations with Openness
 
 ### Continuous
 
@@ -291,8 +293,8 @@ knitr::opts_chunk$set(eval = FALSE)
 * Variable selection: Use BIC or else nothing gets filtered
 * Search complete model space, because I can
 
-To model the openness score all variables are potentially included.
-Because of the Figures pertaining to age and eloquence, the effects are models smoothly.
+To model the Openness score all variables are potentially included.
+Because of the Figures pertaining to age and Eloquence, the effects are models smoothly.
 The final model is selected via a complete search of the model space and using the model with the lowest BIC.
 BIC, because I don't want to interpret so many coefficients.
 
