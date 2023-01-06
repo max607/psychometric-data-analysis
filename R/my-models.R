@@ -58,8 +58,6 @@ if (file.exists("complete-search-aic.rds")) {
 }
 
 res[, probs := exp((AIC[[1]] - AIC) / 2)][, probs := probs / sum(probs)]
-res[, sapply(vars_full, function(var) sum(sapply(vars, `%in%`, x = var) * probs))] %>%
-  scales::percent()
 
 ## Final model - all complete observations ---------------------------------------------------------
 
