@@ -40,6 +40,8 @@ abstract: |
   Suspendisse neque tellus, aliquet ac dignissim vitae, gravida sit amet elit.
   Ut eget turpis ac sem aliquet scelerisque.
   Phasellus in maximus est.
+
+  The code for this project is available under https://github.com/max607/psychometric-data-analysis.
 ---
 
 <style>
@@ -182,38 +184,49 @@ p <- ggplot(dt_bigf, aes(sample = openness)) +
 
 The pairwise association of Openness with numeric covariates is visualized in Figure \@ref(fig:openness-continuous).
 There are scatterplots for the Eloquence score, age and number of children of the mother (family size).
-Each with a locally estimated scatterplot smooth effect (LOESS) for better recognition of effects.
+Each with a smooth effect (cubic regression spline, ten knots) for better recognition of effects.
 There is an effect visible for all three covariates.
-The Openness either decreases or is independent of Eloquence until a score of about nine and than increases linearly.
-Because of the non-linear character Eloquence is later modeled as a smooth effect. \
-It is more difficult to discern a trend in the Openness score for the age of an individual.
-In general Openness increases slightly with age, with a bump around the age of 30.
+The Openness either decreases or is independent of Eloquence until a score of about nine and then increases linearly.
+Because of its non-linear character Eloquence is later modeled as a smooth effect, too. \
+For the age of an individual, it is more difficult to discern a trend in the Openness score.
+It increases slightly with age in general, but has a bump around the age of 30.
 This covariate will be considered as a smooth effect, too. \
 In the third plot Openness seems to decrease linearly with family size.
 
 ```{r openness-continuous, include=TRUE, fig.cap='(ref:openness-eloquence)'}
+library(mgcv)
+
 p1 <- ggplot(dt_bigf, aes(x = eloquence, y = openness)) +
   geom_jitter(height = 0, width = 0.3, alpha = 0.3) +
-  geom_smooth(color = "#0075be", size = 1) +
+  geom_smooth(method = gam, formula = y ~ s(x, bs = 'cr', k = 10), color = "#0075be", size = 1) +
   labs(x = "Eloquence score", y = "Openness score")
 
 p2 <- ggplot(dt_bigf, aes(x = age, y = openness)) +
   geom_jitter(height = 0, width = 0.3, alpha = 0.3) +
-  geom_smooth(color = "#0075be", size = 1) +
+  geom_smooth(method = gam, formula = y ~ s(x, bs = 'cr', k = 10), color = "#0075be", size = 1) +
   labs(x = "Age", y = "Openness score")
 
 p3 <- ggplot(dt_bigf[familysize < 20,], aes(x = familysize, y = openness)) +
   geom_jitter(height = 0, width = 0.3, alpha = 0.3) +
-  geom_smooth(color = "#0075be", size = 1) +
+  geom_smooth(method = gam, formula = y ~ s(x, bs = 'cr', k = 10), color = "#0075be", size = 1) +
   labs(x = "Family size", y = "Openness score")
 
 cowplot::plot_grid(p1, p2, p3, nrow = 2)
 ```
-(ref:openness-eloquence) The pairwise association of Openness with numeric covariates. Additionally, LOESS curves are added to highlight trends in the data. Eloquence and age seem to affect Openness non-linearly.
+(ref:openness-eloquence) The pairwise association of Openness with numeric covariates. Additionally, smooth effects are added to highlight trends in the data. Eloquence and age seem to affect Openness non-linearly.
 
 ### Discrete
 
-```{r openness-discrete, include = TRUE}
+All discrete covariates will be modeled using dummy encoding.
+Table \@ref(tab:openness-discrete) lists the median, mean and standard deviation of the Openness score by the levels of the variable.
+Also the share of missing values in the Openness score is displayed.
+Throughout it is very low.
+Observations with missing values are dropped for the linear model, but Table \@ref(tab:openness-discrete) still includes the statistics for "not answered" (NA), to make sure values are not missing systematically.
+Indeed, some missing values are of concern.
+E.g., the "category" NA for religion, with 59 observations, has the lowest average Openness of all levels.
+Nonetheless, these are only `r dt_bigf[, sum(is.na(religion)) / .N] %>% scales::percent(accuracy = 0.1)`.
+
+```{r openness-discrete, include=TRUE}
 f_measurements <- function(dt, var) {
   n_na <- sum(is.na(dt[, .SD, .SDcols = var]))
   dt[, .(mean = mean(openness, na.rm = TRUE), sd = sd(openness, na.rm = TRUE),
@@ -225,70 +238,19 @@ f_measurements <- function(dt, var) {
     .[]
 }
 
-c("education", "urban", "gender", "engnat", "hand", "religion", "orientation", "race", "voted",
-  "married") %>%
+dt_tab <- c("education", "urban", "gender", "engnat", "hand", "religion", "orientation", "race",
+            "voted", "married") %>%
   lapply(f_measurements, dt = dt_bigf) %>%
   do.call(what = rbind) %>%
   setcolorder(c("covariate", "level", "median", "mean", "sd", "NAs_O")) %>%
-  setnames(c("Covariate", "Level", "Median", "Mean", "SD", "Share NAs")) %>%
-  knitr::kable(digits = 2, booktabs = TRUE, longtable = TRUE) %>%
-  kableExtra::collapse_rows(columns = 1, latex_hline = "major", valign = "top") %>%
-  kableExtra::kable_styling(latex_options = "repeat_header")
-```
+  .[, covariate := tools::toTitleCase(covariate)] %>%
+  setnames(c("Covariate", "Level", "Median", "Mean", "SD", "Share NAs"))
 
-<!-- trash
-### Technical data
-
-```{r duration}
-ggplot(dt_bigf[introelapse < 500,], aes(x = introelapse, y = openness)) +
-  geom_jitter(height = 0.01, width = 0.00, alpha = 0.5) +
-  geom_smooth()
-
-ggplot(dt_bigf[testelapse < 1000,], aes(x = testelapse, y = openness)) +
-  geom_jitter(height = 0.01, width = 0.00, alpha = 0.5) +
-  geom_smooth()
-
-ggplot(dt_bigf[surveyelapse < 1000,], aes(x = surveyelapse, y = openness)) +
-  geom_jitter(height = 0.01, width = 0.00, alpha = 0.5) +
-  geom_smooth()
-```
-
-```{r browser-os}
-ggplot(dt_bigf, aes(x = browser, y = openness)) +
-  geom_boxplot()
-
-ggplot(dt_bigf, aes(x = os, y = openness)) +
-  geom_boxplot()
-```
-
-### Eloquence and engnat
-
-```{r eloquence-engnat, include=TRUE}
-ggplot(dt_bigf, aes(x = engnat, y = eloquence)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
-```
-
-### Eloquence and education
-
-```{r eloquence-education, include=TRUE}
-ggplot(dt_bigf[!is.na(education),], aes(x = education, y = eloquence)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(eloquence, na.rm = TRUE)])
-```
-
-### Age and education
-
-```{r age-education, include=TRUE}
-ggplot(dt_bigf[!is.na(education),], aes(x = education, y = age)) +
-  geom_boxplot() +
-  geom_hline(yintercept = dt_bigf[, median(age, na.rm = TRUE)])
-```
--->
-
-```{r}
-# TODO: remove
-knitr::opts_chunk$set(eval = FALSE)
+knitr::kable(cbind(dt_tab[1:26,], dt_tab[27:52,]), digits = 2, booktabs = TRUE, longtable = TRUE,
+             caption = "TEST") %>%
+  kableExtra::collapse_rows(columns = c(1, 7), latex_hline = "major", valign = "top") %>%
+  kableExtra::kable_styling(latex_options = "repeat_header", font_size = 8) %>%
+  kableExtra::column_spec(6, border_right = TRUE)
 ```
 
 ## Linear model with smooth effect
@@ -309,8 +271,6 @@ To model the Openness score all variables are potentially included.
 Because of the Figures pertaining to age and Eloquence, the effects are models smoothly.
 The final model is selected via a complete search of the model space and using the model with the lowest BIC.
 BIC, because I don't want to interpret so many coefficients.
-
-
 
 # Conclusion
 
