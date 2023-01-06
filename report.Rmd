@@ -180,9 +180,16 @@ p <- ggplot(dt_bigf, aes(sample = openness)) +
 
 ### Continuous
 
-* Eloquence makes sense.
-* There should be no correlation with age.
-* Figure \@ref(fig:openness-continuous)
+The pairwise association of Openness with numeric covariates is visualized in Figure \@ref(fig:openness-continuous).
+There are scatterplots for the Eloquence score, age and number of children of the mother (family size).
+Each with a locally estimated scatterplot smooth effect (LOESS) for better recognition of effects.
+There is an effect visible for all three covariates.
+The Openness either decreases or is independent of Eloquence until a score of about nine and than increases linearly.
+Because of the non-linear character Eloquence is later modeled as a smooth effect. \
+It is more difficult to discern a trend in the Openness score for the age of an individual.
+In general Openness increases slightly with age, with a bump around the age of 30.
+This covariate will be considered as a smooth effect, too. \
+In the third plot Openness seems to decrease linearly with family size.
 
 ```{r openness-continuous, include=TRUE, fig.cap='(ref:openness-eloquence)'}
 p1 <- ggplot(dt_bigf, aes(x = eloquence, y = openness)) +
@@ -202,7 +209,7 @@ p3 <- ggplot(dt_bigf[familysize < 20,], aes(x = familysize, y = openness)) +
 
 cowplot::plot_grid(p1, p2, p3, nrow = 2)
 ```
-(ref:openness-eloquence) Fourth figure.
+(ref:openness-eloquence) The pairwise association of Openness with numeric covariates. Additionally, LOESS curves are added to highlight trends in the data. Eloquence and age seem to affect Openness non-linearly.
 
 ### Discrete
 
@@ -292,6 +299,11 @@ knitr::opts_chunk$set(eval = FALSE)
 * No need for checking correlation between covariates: exhaustive model selection (variables that don't add new information are dropped)
 * Variable selection: Use BIC or else nothing gets filtered
 * Search complete model space, because I can
+
+* Interpretation
+  * Eloquence makes sense.
+  * There should be no correlation with age.
+
 
 To model the Openness score all variables are potentially included.
 Because of the Figures pertaining to age and Eloquence, the effects are models smoothly.
