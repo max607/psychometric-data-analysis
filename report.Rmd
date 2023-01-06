@@ -25,21 +25,8 @@ author: |
   | Maximilian Schneider
 date: "`r format(Sys.time(), '%d.%m.%Y')`"
 abstract: |
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-  Integer fringilla interdum magna, at sodales ante hendrerit in.
-  Ut mauris justo, sodales sed posuere id, ultrices ut ante.
-  In auctor tellus nulla, nec efficitur tellus finibus id.
-  Vivamus at condimentum sapien, a sodales erat.
-  Nulla nec neque eu purus consequat vestibulum.
-  Vestibulum placerat congue porttitor.
-  In hac habitasse platea dictumst.
-  In hac habitasse platea dictumst.
-  Sed consectetur a quam a posuere.
-  Ut elit leo, lobortis sit amet risus vel, ultrices fringilla nisl.
-  Aliquam ut leo mauris.
-  Suspendisse neque tellus, aliquet ac dignissim vitae, gravida sit amet elit.
-  Ut eget turpis ac sem aliquet scelerisque.
-  Phasellus in maximus est.
+  The Grit Scale dataset is statistically analysed.
+  The focus is on predicting the Big Five personality dimension Openness using demographic data and performing a complete search of the linear model space using AIC.
 
   The code for this project is available under https://github.com/max607/psychometric-data-analysis.
 ---
@@ -247,7 +234,7 @@ dt_tab <- c("education", "urban", "gender", "engnat", "hand", "religion", "orien
   setnames(c("Covariate", "Level", "Median", "Mean", "SD", "Share NAs"))
 
 knitr::kable(cbind(dt_tab[1:26,], dt_tab[27:52,]), digits = 2, booktabs = TRUE, longtable = TRUE,
-             caption = "TEST") %>%
+             caption = "Pairwise associations with Openness score and discrete variables.") %>%
   kableExtra::collapse_rows(columns = c(1, 7), latex_hline = "major", valign = "top") %>%
   kableExtra::kable_styling(latex_options = "repeat_header", font_size = 8) %>%
   kableExtra::column_spec(6, border_right = TRUE)
@@ -255,51 +242,39 @@ knitr::kable(cbind(dt_tab[1:26,], dt_tab[27:52,]), digits = 2, booktabs = TRUE, 
 
 ## Linear model with smooth effect
 
-* TODO: try centering data
-* TODO: don't forget outlier
-* TODO: choose a nice reference category
-* No need for checking correlation between covariates: exhaustive model selection (variables that don't add new information are dropped)
-* Variable selection: Use BIC or else nothing gets filtered
-* Search complete model space, because I can
+The Openness score is modeled conditional to the rest of covariates.
+Because there is no theoretical framework explored in this analysis, the focus for this exploratory model is on prediction.
+This is why variables are selected using the AIC.
+After model selection the best model is
 
-* Interpretation
-  * Eloquence makes sense.
-  * There should be no correlation with age.
+\begin{equation}
+  Y_{\text{Openness}, i} \sim N(\mu_i, \sigma),
+\end{equation}
 
+where $\mu$ depends on age, dominant hand, education, family size, gender, native language English (yes/no), race, religion, sexual orientation, voted in a national election past year and Eloquence.
 
-To model the Openness score all variables are potentially included.
-Because of the Figures pertaining to age and Eloquence, the effects are models smoothly.
-The final model is selected via a complete search of the model space and using the model with the lowest BIC.
-BIC, because I don't want to interpret so many coefficients.
+```{r inclusion-probs, include=TRUE}
+res[, sapply(vars_full, function(var) sum(sapply(vars, `%in%`, x = var) * probs))] %>%
+  scales::percent() %>%
+  data.table(Covariate = names(.) %>% tools::toTitleCase(), "Inclusion probability" = .) %>%
+  knitr::kable(booktabs = TRUE, caption = "Inclusion probabilities according to AIC.")
+```
+
+It is found searching the complete model space, which is possible due to the relatively small amount of covariates.
+Table \@ref(tab:inclusion-probs) lists all posterior inclusion probabilities under AIC.
+
+```{r summary, include=TRUE}
+summary(m.lam.fin)
+plot(m.lam.fin)
+```
+
+I will just leave you with the model output because I have no time left.
 
 # Conclusion
 
-Blub.
+While no mayor effect on Openness was found, it was clearly possible to improve on a simple intercept model.
+In all models considered, especially the Eloquence score was of importance, which is reasonable, considering a large part of Openness is related to words.
 
 # References
 
 <div id="refs"></div>
-
-# (APPENDIX) Appendix {-}
-
-# Sensitivity analysis
-
-* Binomial model
-* Quasibinomial
-* Estimation
-
-<!-- trash
-```{r first-attempt, eval=FALSE}
-dt_bigf[, openness := rowSums(.SD) / 50, .SDcols = patterns("^O")]
-0:50 / 50  # possible scores
-# dt_bigf[, patterns("^[ACENOG]") := NULL]
-
-ggplot(dt_bigf, aes(x = openness)) +
-  geom_histogram(aes(y = ..density..), bins = 100, boundary = 0) +
-  geom_function(fun = dnorm, args = list(mean = mean(dt_bigf$openness), sd = sd(dt_bigf$openness))) +
-  geom_density(color = "red")
-
-ggplot(dt_bigf, aes(x = openness)) +
-  stat_ecdf()
-```
--->
