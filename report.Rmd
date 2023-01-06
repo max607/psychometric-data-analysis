@@ -92,19 +92,24 @@ Lastly, Section \@ref(linear-model-with-smooth-effect) describes the analysis of
 The "grit scale data" consists of various measurements on 4270 individuals.
 After preparing the dataset according to the assignment, there are 22 distinct variables.
 They can be divided into 8 automatically collected technical information about the device used to complete the questionnaire, 12 personal details about the subject and two generated scores, eloquence and openness, which are described in Sections \@ref(eloquence-score) and \@ref(openness-score), respectively. \
-While all 12 personal details (education, urban, gender, native language English, age, hand, religion, orientation, race, voted, married, family size) are considered, the technical information is only used to exclude unrealistic observations.
-Because the average person took about 10 minutes to fill out the Big Five personality test (2.5% quantile: 113 seconds, 97.5% quantile: 930 seconds), 8 observations are excluded, where individuals finished the test in under a minute.
-This indicates that their questions are probably poorly answered. \
-In the search for the best model according to the AIC additional `r nrow(dt_bigf) - nrow(na.omit(dt_bigf, cols = c(vars_full, "openness")))` observations are discarded because of missing values.
-The final model uses all observations that are complete with regard to the included covariates ($n =$ `r nrow(na.omit(dt_bigf, cols = c(res[1, vars][[1]], "openness")))`).
+While all 12 personal details (age, dominant hand, education, family size, gender, marital status, native language English (yes/no), race, religion, sexual orientation, type of area in childhood, voted in a national election past year) are considered in the analysis, the technical information (browser type, duration of completion of questionnaire parts (3), ISO country code, operating system, screen size (height and width)) is only used to exclude unrealistic observations.
+In this regard 8 observations discarded, where the Big Five personality test was finished in under a minute.
+This is most likely too short, compared to an average completion time of about 10 minutes (2.5% quantile: 113 seconds, 97.5% quantile: 930 seconds).
+
+During the search for the AIC optimal model, additional `r nrow(dt_bigf) - nrow(na.omit(dt_bigf, cols = c(vars_full, "openness")))` observations are discarded because of missing values.
+The final model uses all observations that are complete with regard to the selected covariates ($n =$ `r nrow(na.omit(dt_bigf, cols = c(res[1, vars][[1]], "openness")))`).
 
 ### Eloquence score
 
-During the course of the questionnaire, participants where given a list of 16 words, three of which were not real, and tasked to mark all the words whose definitions they were sure to know.
-In order to consider this in the analysis, the variables are aggregated to a single score via the sum of correct answers.
-Because the questionnaire only had one box for each item, ticked meaning "I know the definition", it is assumed there are no missing observations for this set of items, which non the less could be the case, because an unchecked box could mean both.
+In the questionnaire, participants where given a list of 16 words, three of which were not real, and tasked to mark all the words whose definitions they were sure to know.
+Because the actual words are of low interest, the models consider these variables as an aggregated score, which is the sum of "correct" answers.
+"Correct" either means the participant was sure to know the words definition or correctly left the box of a made up word unticked. \
+Because the questionnaire only had one box for each item, it is assumed there are no missing observations, even though an unchecked box could be the sign of an unanswered question or an unknown definition.
 
-Figure \@ref(fig:plot-eloquence) displays a barchart of the score.
+The resulting score lives on a scale from 0 to 16 and is displayed in Figure \@ref(fig:plot-eloquence).
+The barplot has its mode at 12 correct answers and appears pretty symmetrical.
+`r nrow(dt_bigf[eloquence < 4,])` have a score below four.
+They are not excluded from further analysis, because there is no apparent reason.
 
 ```{r plot-eloquence, include=TRUE, fig.cap='(ref:plot-eloquence)'}
 p <- ggplot(dt_bigf, aes(x = eloquence)) +
@@ -113,7 +118,7 @@ p <- ggplot(dt_bigf, aes(x = eloquence)) +
   labs(x = "Eloquence score", y = "Number of observations")
 p
 ```
-(ref:plot-eloquence) First figure.
+(ref:plot-eloquence) Barplot illustrating the empirical distribution of the eloquence score. It shows the number of study participants by number of correctly marked boxes in a checklist about the definitions of words.
 
 ```{r}
 p <- ggplot(dt_bigf, aes(x = eloquence)) +
@@ -128,8 +133,6 @@ p <- ggplot(dt_bigf, aes(x = eloquence)) +
 ```
 
 ### Openness score
-
-<!-- TODO: Mention somewhere this is going to be the response -->
 
 In order to asses the openness of an individual (in terms of the Big Five personality dimensions) ten questions were asked, which are to be aggregated into a single score.
 Its calculation is a bit more involved compared to the eloquence score.
@@ -305,7 +308,7 @@ Blub.
 
 # (APPENDIX) Appendix {-}
 
-# Model selection
+# Sensitivity analysis
 
 * Binomial model
 * Quasibinomial
