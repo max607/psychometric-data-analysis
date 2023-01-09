@@ -1,0 +1,18 @@
+---
+output:
+  ioslides_presentation:
+    widescreen: true
+    transition: faster
+bibliography: references.bib
+link-citations: true
+urlcolor: blue
+title: Statistical Analysis of the Grit Scale Dataset
+author: Maximilian Schneider
+date: "`r format(Sys.time(), '%d.%m.%Y')`"
+---
+
+# TODO
+
+* Classify level of measurement
+* Give frequencies of categories
+
