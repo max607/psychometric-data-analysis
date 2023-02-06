@@ -46,4 +46,5 @@ report.pdf
 
 # data
 complete-search-aic-old.rds
+complete-search-aic-reml.rds
 complete-search-bic.rds

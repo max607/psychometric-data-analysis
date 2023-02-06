@@ -1,7 +1,3 @@
-library(data.table)
-library(purrr)
-library(magrittr)
-
 # Read dataset -------------------------------------------------------------------------------------
 dt_bigf <- read.table("psychometric-data.csv", header = TRUE, sep = "\t", na.strings = "") %>%
   as.data.table()
