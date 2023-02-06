@@ -2,17 +2,229 @@
 output:
   ioslides_presentation:
     widescreen: true
-    transition: faster
+    incremental: true
 bibliography: references.bib
 link-citations: true
 urlcolor: blue
-title: Statistical Analysis of the Grit Scale Dataset
+title: Statistical Analysis of the <br> Grit Scale Dataset
+subtitle: Submitted to the Department of Statistics <br> of the Athens University of Economics and Business
 author: Maximilian Schneider
 date: "`r format(Sys.time(), '%d.%m.%Y')`"
 ---
 
-# TODO
+<style>
+.build > * {
+    -webkit-transition: opacity 0s ease-in-out;
+    -webkit-transition-delay: 0s;
+    -moz-transition: opacity 0s ease-in-out 0s;
+    -o-transition: opacity 0s ease-in-out 0s;
+    transition: opacity 0s ease-in-out 0s;
+}
+slides > slide.title-slide {
+    background-image: url('figures/background_title_page_1920x1080.jpg');
+    background-size: 100% 100%;
+}
+slides > slide.title-slide hgroup h1,
+slides > slide.title-slide hgroup h2,
+slides > slide.title-slide p {
+    color: black;
+}
+slides > slide.dark {
+    background-image: url('figures/background_title_page_1920x1080.jpg') !important;
+    background-size: 100% 100% !important;
+}
+slides > slide.dark > hgroup h2 {
+    color: black;
+    font-size: 72px;
+    letter-spacing: 10;
+}
+div.footnotes {
+    position: absolute;
+    bottom: 0;
+    margin-bottom: 10px;
+    width: 80%;
+    font-size: 0.6em;
+}
+</style>
 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script>
+$(document).ready(function() {
+  $('slide:not(.backdrop):not(.title-slide)').append('<div class=\"footnotes\">');
+
+  $('footnote').each(function(index) {
+    var text  = $(this).html();
+    var fnNum = (index+1).toString();
+    $(this).html(fnNum.sup());
+
+    var footnote   = fnNum + '. ' + text + '<br/>';
+    var oldContent = $(this).parents('slide').children('div.footnotes').html();
+    var newContent = oldContent + footnote;
+    $(this).parents('slide').children('div.footnotes').html(newContent);
+  });
+});
+</script>
+
+```{r setup, include=FALSE}
+# rmarkdown settings
+knitr::opts_chunk$set(fig.align = "center", out.width = '80%', echo = FALSE, cache = FALSE,
+                      message = FALSE, warning = FALSE)
+
+# packages
+library(data.table)
+library(purrr)
+library(magrittr)
+library(ggplot2); theme_set(theme_bw())
+library(mgcv)
+
+# code
+source("R/functions.R")
+source("R/prepare-data.R")
+source("R/application.R")
+source("R/plots.R")
+```
+
+<!-- TODO
+
+## Statistics
+
+* REML is not suitable for model comparisons! Read wood chapter on model comparison
+* Note edf of final model and its splines
 * Classify level of measurement
 * Give frequencies of categories
+* Consider cumulative frequencies for ordinal variables and the median
+* Mention outlier are not so important because of n > 4000
+  * Try `mvoutlier::uni.plot()`
+* Try `sjPlot::tab_corr()`
+* Model diagnostic: problematic: skewness of residuals
+* Look at internally and externally studentized residuals
+  * Maybe plot them against each other
+  * Or plot the t-distribution with the values (https://online.stat.psu.edu/stat462/node/247/) (maybe histogram + theoretical distribution) (see data analysis notes)
+
+ggplot(data.table(resid_student = residuals(m.lam.fin, "scaled.pearson")), aes(resid_student)) +
+  geom_histogram(aes(y = ..density..), color = "black", bins = 100) +
+  geom_function(fun = function(x) dt(x, df = nrow(model.matrix(m.lam.fin)) - ncol(model.matrix(m.lam.fin)) - 1)) +
+  xlim(-6, 6)
+
+
+## Presentation
+
+* How long: 10min + 5min questions
+* Don't forget figure titles
+-->
+
+# The Big Five <br> Personality Dimensions
+
+## The Big Five personality dimensions<footnote>https://en.wikipedia.org/wiki/Big_Five_personality_traits<footnote>
+
+<div class="notes">
+> - Extraversion (outgoing -- solitary / energetic -- reserved)
+> - Neuroticism (sensitive -- resilient / nervous -- confident)
+> - Agreeableness (friendly -- critical / compassionate -- rational)
+> - Conscientiousness (efficient -- extravagant / organized -- careless)
+> - Openness to experience (inventive -- consistent / curious -- cautious)
+</div>
+
+* Extraversion
+* Neuroticism
+* Agreeableness
+* Conscientiousness
+* **Openness to experience**
+
+# The Grid Scale Dataset
+
+<div class="notes">
+> - Online questionnaire data
+> - Study: "Development and Validation of the Short Grit Scale"
+> - Angela Duckworth and Patrick Quinn
+> - International Personality Item Pool (IPIP), Demographic data, Technical information
+</div>
+
+## Eloquence score
+
+<div class="notes">
+> - Basis: List of 16 words, 3 unreal
+> - "Mark all the words whose definitions you are sure to know."
+> - Sum of correct answers
+> - Assumption: No NAs
+</div>
+
+```{r plot-eloquence}
+p1
+```
+
+## Openness score
+
+<div class="notes">
+> - Likert-type scale, Encoding: 0 (Disagree strongly) to 4 (Agree strongly), NA
+> - Questions 2, 4 and 6 other way around, After transformation all items positively correlated
+> - Score: sum of single items divided by four times the number of items answered
+> - Possible scores: multiples of $\frac{1}{40}$ (all ten openness items completed), $\frac{1}{36}$ (nine Openness items completed), $\frac{1}{32}$ ...
+</div>
+
+```{r plot-openness}
+p2
+```
+
+## Other variables
+
+<div class="notes">
+> - Scales: ratio, ratio, ordinal, rest: nominal
+> - Error in race variable
+> - Technical info as sanity check
+</div>
+
+<div style="float: left; width: 50%;">
+* Age
+* Family size
+* Education
+* Dominant hand
+* Gender
+* Marital status
+* Native language English (yes/no)
+</div>
+
+<div style="float: right; width: 50%;">
+* Race
+* Religion
+* Sexual orientation
+* Type of area in childhood
+* Voted in a national election past year
+* 8 automatically collected technical information
+</div>
+
+## Pairwise associations with Openness
+
+<div class="notes">
+> - Consider some covariates as non-linear
+> - Age starting at 13
+> - Family size: number of kids of mother -- starting at 1, linear
+</div>
+
+```{r openness-continuous}
+cowplot::plot_grid(p3, p4, p5, nrow = 3)
+```
+
+# Linear Regression Model for Openness
+
+## Model selection
+
+* Full model
+* Variable selection using AIC
+  * Posterior inclusion probability
+  * Full enumeration: avoid headache with step-wise procedures and collinearity
+* REML
+  * edf bigger than 1
+* Goodness-of-fit
+  * No test for normality
+
+## Limitations
+
+* Missing covariates
+* Number of observations?
+
+## Model interpretation
+
+* Effects
+* Do they make sense? / Are they as expected?
 
