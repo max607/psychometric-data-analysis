@@ -10,6 +10,7 @@ if (file.exists("complete-search-aic.rds")) {
   setDT(res)
 } else {
   res <- search_all_models(dt_bigf, vars = vars_full, response = "openness", id_splines = c(5, 13))
+  saveRDS(res, "complete-search-aic.rds")
 }
 
 res[, probs := exp((AIC[[1]] - AIC) / 2)][, probs := probs / sum(probs)]
@@ -18,6 +19,12 @@ res[, probs := exp((AIC[[1]] - AIC) / 2)][, probs := probs / sum(probs)]
 
 m.lam.fin <- as.formula(res[1, formula][[1]]) %>%
   gam(data = dt_bigf, family = gaussian(), method = "REML")
+
+m.lam.fin.sel <- as.formula(res[1, formula][[1]]) %>%
+  gam(data = na.omit(dt_bigf, cols = c(vars_full, "openness")), family = gaussian(), method = "ML")
+
+m.lam.min <- gam(openness ~ 1, data = na.omit(dt_bigf, cols = c(vars_full, "openness")),
+                 family = gaussian(), method = "ML")
 
 # Sensitivity analysis -----------------------------------------------------------------------------
 

@@ -34,7 +34,60 @@ p5 <- ggplot(dt_bigf[familysize < 20,], aes(x = familysize, y = openness)) +
   labs(x = "Family size", y = "Openness score") +
   scale_x_continuous(limits = c(0, 18), breaks = seq(0, 18, 6))
 
+# A posteriori inclusion probabilities -------------------------------------------------------------
+
+p6 <- res[, sapply(vars_full, function(v) sum(probs[sapply(vars, `%in%`, x = v)]))] %>%
+  data.table(var = names(.), prob = .) %>%
+  setorder(-var) %>%
+  .[, var := factor(var, levels = var)] %>%
+  ggplot(aes(var, prob)) +
+  geom_col() +
+  geom_hline(yintercept = 0.5) +
+  xlab("Covariate") + ylab("A posteriori inclusion probability") +
+  coord_flip()
+
+# Model diagnostics --------------------------------------------------------------------------------
+
+# data.table(resid_student = residuals(m.lam.fin, "scaled.pearson")) %>%
+#   ggplot(aes(resid_student)) +
+#   geom_histogram(aes(y = ..density..), color = "black", bins = 100) +
+#   geom_function(fun =  dnorm) +
+#   xlim(-6, 6)
+
+p9.1 <- data.table(fitted = fitted(m.lam.fin), resid = residuals(m.lam.fin, "response")) %>%
+  ggplot(aes(fitted, resid)) +
+  geom_point()
+
+# Coefficients -------------------------------------------------------------------------------------
+
+add_layers <- function(p) {
+  p +
+  geom_hline(yintercept = 0) +
+  geom_pointrange(aes(ymin = lower, ymax = upper)) +
+  geom_point() +
+  ylab("Estimate") + xlab("Covariate") + ylim(-0.1, 0.1) +
+  coord_flip()
+}
+
+coef_fin <- m.lam.fin$coefficients
+coef_fin <- coef_fin[names(coef_fin) != "(Intercept)"]
+coef_fin <- coef_fin[!grepl("^s\\(", names(coef_fin))]
+sd_fin <- sqrt(diag(vcov(m.lam.fin)))[names(coef_fin)]
+
+dt_coef <- data.table(coef = names(coef_fin), value = coef_fin, sd = sd_fin) %>%
+  .[, c("lower", "upper") := .(value - 2 * sd, value + 2 * sd)] %>%
+  setorder(-coef) %>%
+  .[, coef := factor(coef, levels = coef)]
+
+p7.1 <- ggplot(dt_coef[c(1, 17:29),], aes(x = coef, y = value)) %>%
+  add_layers()
+
+p7.2 <- ggplot(dt_coef[2:16,], aes(x = coef, y = value)) %>%
+  add_layers()
+
 # Visual Sensitivity analysis ----------------------------------------------------------------------
+
+p8 <- ggcross(m.lam.fin, m.lam.fin.sel)
 
 # data.table(lam = residuals(m.lam.fin), gam = residuals(m.gam.fin, type = "response")) %>%
 #   ggplot(aes(x = lam, y = gam)) +

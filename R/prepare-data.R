@@ -1,8 +1,10 @@
 # Read dataset -------------------------------------------------------------------------------------
+
 dt_bigf <- read.table("psychometric-data.csv", header = TRUE, sep = "\t", na.strings = "") %>%
   as.data.table()
 
 # Format dataset -----------------------------------------------------------------------------------
+
 dt_bigf[, c("country", "education", "urban", "gender", "engnat", "hand", "religion",
             "orientation", "race", "voted", "married", "os", "browser") :=
           .(factor(country),
@@ -33,11 +35,13 @@ names_o <- names(dt_bigf) %>% grep(pattern = "^O", value = TRUE)
 dt_bigf[, (names_o) := lapply(.SD, function(col) ifelse(col == 0, NA, col)), .SDcols = names_o]
 
 # Eloquence ----------------------------------------------------------------------------------------
+
 vcl_fluke <- paste0("VCL", c(6, 9, 12))
 dt_bigf[, (vcl_fluke) := lapply(.SD, function(col) as.integer(col == 0)), .SDcols = vcl_fluke]
 dt_bigf[, eloquence := rowSums(.SD), .SDcols = patterns("^VCL")]
 
 # Openness -----------------------------------------------------------------------------------------
+
 # start at zero
 dt_bigf[, (names_o) := .SD - 1, .SDcols = names_o]
 
@@ -68,6 +72,7 @@ dt_bigf[!is.na(trials), hits := rowSums(.SD, na.rm = TRUE), .SDcols = names_o]
 dt_bigf[, c("misses", "openness") := .(trials - hits, hits / trials)]
 
 # Removing columns ---------------------------------------------------------------------------------
+
 dt_bigf[, c(grep("^[ACENOGV]", names(dt_bigf), value = TRUE), "operatingsystem") := NULL]
 setcolorder(dt_bigf, neworder = c("introelapse", "testelapse", "surveyelapse", "browser",
                                   "screenw", "screenh", "os", "country", "education", "urban",
@@ -76,12 +81,6 @@ setcolorder(dt_bigf, neworder = c("introelapse", "testelapse", "surveyelapse", "
                                   "openness", "trials", "hits", "misses"))
 
 # Technical sanity checks --------------------------------------------------------------------------
-# dt_bigf[, summary(.SD), .SDcols = patterns("elapse$")]
-
-# there are some extreme values
-# ggplot(dt_bigf[testelapse < 300,], aes(x = testelapse)) +
-#   geom_histogram(breaks = seq(0, 300, length = 500), color = "black", fill = "black") +
-#   geom_hline(yintercept = 1)
 
 # filter 8 people who were way to quick
 dt_bigf <- dt_bigf[testelapse > 75,]

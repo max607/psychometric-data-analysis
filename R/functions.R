@@ -52,11 +52,12 @@ search_all_models <- function(dt, vars, response, id_splines, run = TRUE) {
 
 # Plot for comparing model coefficients ------------------------------------------------------------
 
-ggcross <- function(m1, m2, trans = identity, intercept = FALSE) {
+ggcross <- function(m1, m2, trans = identity, intercept = FALSE, splines = FALSE) {
 
   # extract all stuff
   coef1 <- m1$coefficients
   if (!intercept) coef1 <- coef1[names(coef1) != "(Intercept)"]
+  if (!splines) coef1 <- coef1[!grepl("^s\\(", names(coef1))]
   coef2 <- m2 %$% coefficients[names(coefficients) %in% names(coef1)]
   sd1 <- sqrt(diag(vcov(m1)))[names(coef2)]
   sd2 <- sqrt(diag(vcov(m2)))[names(coef2)]
