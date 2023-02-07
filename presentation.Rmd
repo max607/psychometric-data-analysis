@@ -45,6 +45,9 @@ div.footnotes {
     width: 80%;
     font-size: 0.6em;
 }
+table {
+    caption-side: bottom
+}
 </style>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
@@ -101,12 +104,6 @@ source("R/plots.R")
   * Maybe plot them against each other
   * Or plot the t-distribution with the values (https://online.stat.psu.edu/stat462/node/247/) (maybe histogram + theoretical distribution) (see data analysis notes)
 
-ggplot(data.table(resid_student = residuals(m.lam.fin, "scaled.pearson")), aes(resid_student)) +
-  geom_histogram(aes(y = ..density..), color = "black", bins = 100) +
-  geom_function(fun = function(x) dt(x, df = nrow(model.matrix(m.lam.fin)) - ncol(model.matrix(m.lam.fin)) - 1)) +
-  xlim(-6, 6)
-
-
 ## Presentation
 
 * How long: 10min + 5min questions
@@ -115,7 +112,7 @@ ggplot(data.table(resid_student = residuals(m.lam.fin, "scaled.pearson")), aes(r
 
 # The Big Five <br> Personality Dimensions
 
-## The Big Five personality dimensions<footnote>https://en.wikipedia.org/wiki/Big_Five_personality_traits<footnote>
+## The Big Five personality dimensions<footnote>https://en.wikipedia.org/wiki/Big_Five_personality_traits</footnote>
 
 <div class="notes">
 > - Extraversion (outgoing -- solitary / energetic -- reserved)
@@ -202,29 +199,108 @@ p2
 </div>
 
 ```{r openness-continuous}
-cowplot::plot_grid(p3, p4, p5, nrow = 3)
+cowplot::plot_grid(p4, p3, p5, nrow = 3)
 ```
 
 # Linear Regression Model for Openness
 
 ## Model selection
 
-* Full model
-* Variable selection using AIC
-  * Posterior inclusion probability
-  * Full enumeration: avoid headache with step-wise procedures and collinearity
-* REML
-  * edf bigger than 1
-* Goodness-of-fit
-  * No test for normality
+<div class="notes">
+> - AIC: no theory $\rightarrow$ focus on prediction
+> - Full enumeration $\rightarrow$ avoid step-wise procedures (i.e., arbitrary choices) and problems with collinearity: only variables which contain unique information will be used
+> - No clear best model, see next slide
+</div>
+
+```{r aics}
+res[1:5, .(AIC, Probability = scales::percent(probs, 0.01))] %>%
+  knitr::kable(booktabs = TRUE,
+               caption = "Top 5 models according to AIC and their probabilities to minimize the (estimated) information loss<footnote>Burnham, K. P.; Anderson, D. R. (2002), Model Selection and Multimodel Inference: A practical information-theoretic approach (2nd ed.), Springer-Verlag.</footnote>")
+```
+
+## A posteriori inclusion probabilities
+
+<div class="notes">
+> - Only urban and married have a probability lower than 50%
+> - Model using all covariates with a post incl prob > 50% is the model with the lower AIC
+> - Second best dropped voted
+> - Third best dropped engnat
+</div>
+
+
+```{r post-inclusion-probs}
+p6
+```
+
+## Model diagnostics
+
+* Explained variance: `r scales::percent(summary(m.lam.fin)$dev.expl, 0.1)`
+* $n =$ `r summary(m.lam.fin)$n`
+* edf
+* distribution of residuals
+* Why we don't test for normality of residuals
+
+## Statistical significan('t)ce
+
+<div class="notes">
+> - So dumb
+> - With enough observations everything is statistically significant
+</div>
+
+<div style="float: left; width: 50%;">
+```{r}
+dt_f <- anova(m.lam.fin) %$%
+  cbind(c(pTerms.table[, "F"], s.table[, "F"]), c(pTerms.pv, s.table[, "p-value"]) * 11) %>%
+  round(3) %>%
+  as.data.table(keep.rownames = TRUE)
+dt_f[, V2 := ifelse(V2 > 0.5, ">0.5", V2)]
+dt_f[, V2 := ifelse(V2 == "0", "<0.001", V2)]
+setnames(dt_f, c("Covariate", "F-statistic", "p-value"))
+
+knitr::kable(dt_f[1:6,], booktabs = TRUE)
+```
+</div>
+
+<div style="float: right; width: 50%;">
+```{r}
+knitr::kable(dt_f[7:11], booktabs = TRUE,
+             caption = "Drop one F-tests with Bonferroni correction (approximations for smooth terms<footnote>Wood, S.N. (2017). Generalized Additive Models: An Introduction with R, Second Edition (2nd ed.). Chapman and Hall/CRC.</footnote>)")
+```
+</div>
 
 ## Limitations
 
 * Missing covariates
 * Number of observations?
 
-## Model interpretation
+## Coefficients
 
-* Effects
-* Do they make sense? / Are they as expected?
+<div class="notes">
+> - Do they make sense? / Are they as expected?
+> - Reference class
+</div>
+
+```{r coefficients1}
+p7.1
+```
+
+## Coefficients
+
+<div class="notes">
+> - Reference class
+</div>
+
+```{r coefficients2}
+p7.2
+```
+
+## Smooth effects
+
+# Appendix
+
+## Sensitivity - REML
+
+```{r}
+p8
+```
 
