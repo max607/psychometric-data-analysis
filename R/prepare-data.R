@@ -3,6 +3,11 @@
 dt_bigf <- read.table("psychometric-data.csv", header = TRUE, sep = "\t", na.strings = "") %>%
   as.data.table()
 
+vars_full <- c("education", "gender", "urban", "engnat", "age", "hand", "religion", "orientation",
+               "race", "voted", "married", "familysize", "eloquence")
+vars_cat <- c("education", "gender", "urban", "engnat", "hand", "religion", "orientation", "race",
+              "voted", "married")
+
 # Format dataset -----------------------------------------------------------------------------------
 
 dt_bigf[, c("country", "education", "urban", "gender", "engnat", "hand", "religion",
@@ -18,8 +23,8 @@ dt_bigf[, c("country", "education", "urban", "gender", "engnat", "hand", "religi
                                         "jewish", "muslim", "sikh", "other"), exclude = 0),
             factor(orientation, labels = c("heterosexual", "bisexual", "homosexual", "asexual",
                                            "other"), exclude = 0),
-            factor(race, labels = c("asian", "arab", "black", "misc", "other"), exclude = 0),
-            factor(voted, labels = c("yes", "no"), exclude = 0),
+            factor(race, labels = c("misc", "asian", "arab", "black", "other"), exclude = 0),
+            factor(voted, labels = c("no", "yes"), exclude = 0),
             factor(married, labels = c("no", "yes", "divorced"), exclude = 0),
             factor(operatingsystem), factor(browser))
 ]
@@ -84,4 +89,8 @@ setcolorder(dt_bigf, neworder = c("introelapse", "testelapse", "surveyelapse", "
 
 # filter 8 people who were way to quick
 dt_bigf <- dt_bigf[testelapse > 75,]
+
+# Complete observations ----------------------------------------------------------------------------
+
+dt_bigf.fix <- na.omit(dt_bigf, cols = c(vars_full, "openness"))
 
