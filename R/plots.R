@@ -60,6 +60,8 @@ p9.1 <- data.table(fitted = fitted(m.lam.fin), resid = residuals(m.lam.fin, "res
 
 # Coefficients -------------------------------------------------------------------------------------
 
+## Classic effects ---------------------------------------------------------------------------------
+
 add_layers <- function(p) {
   p +
   geom_hline(yintercept = 0) +
@@ -85,9 +87,37 @@ p7.1 <- ggplot(dt_coef[c(1, 17:29),], aes(x = coef, y = value)) %>%
 p7.2 <- ggplot(dt_coef[2:16,], aes(x = coef, y = value)) %>%
   add_layers()
 
+## Smooth effects ----------------------------------------------------------------------------------
+
+p10.1 <- predict(m.lam.fin, type = "terms", terms = "s(age)", se.fit = TRUE) %$%
+  data.table(age = m.lam.fin$model$age, s_age = fit[, 1], sd = se.fit[, 1]) %>%
+  .[, c("lower", "upper") := .(s_age - 2 * sd, s_age + 2 * sd)] %>%
+  ggplot(aes(age, s_age)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "lightgrey") +
+  geom_hline(yintercept = 0) +
+  geom_line(size = 1, color = "#0075be") +
+  labs(x = "Age", y = "s(Age)") +
+  xlim(0, 80) +
+  scale_y_continuous(limits = c(-0.15, 0.15), breaks = round(seq(-0.15, 0.15, 0.05), 2))
+
+p10.2 <- predict(m.lam.fin, type = "terms", terms = "s(eloquence)", se.fit = TRUE) %$%
+  data.table(elo = m.lam.fin$model$eloquence, s_elo = fit[, 1], sd = se.fit[, 1]) %>%
+  .[, c("lower", "upper") := .(s_elo - 2 * sd, s_elo + 2 * sd)] %>%
+  ggplot(aes(elo, s_elo)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "lightgrey") +
+  geom_hline(yintercept = 0) +
+  geom_line(size = 1, color = "#0075be") +
+  labs(x = "Eloquence score", y = "s(Eloquence)") +
+  scale_x_continuous(limits = c(0, 16), breaks = seq(0, 16, 4)) +
+  scale_y_continuous(limits = c(-0.15, 0.15), breaks = round(seq(-0.15, 0.15, 0.05), 2))
+
 # Visual Sensitivity analysis ----------------------------------------------------------------------
 
-p8 <- ggcross(m.lam.fin, m.lam.fin.sel)
+p8 <- ggcross(m.lam.fin.sel, m.lam.fin) +
+  theme(legend.position = "none") +
+  lims(x = c(-0.1, 0.1), y = c(-0.1, 0.1)) +
+  labs(x = "Selected model", y = "Refitted model")
+
 
 # data.table(lam = residuals(m.lam.fin), gam = residuals(m.gam.fin, type = "response")) %>%
 #   ggplot(aes(x = lam, y = gam)) +

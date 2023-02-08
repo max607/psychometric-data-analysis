@@ -14,26 +14,28 @@ date: "`r format(Sys.time(), '%d.%m.%Y')`"
 
 <style>
 .build > * {
-    -webkit-transition: opacity 0s ease-in-out;
-    -webkit-transition-delay: 0s;
-    -moz-transition: opacity 0s ease-in-out 0s;
-    -o-transition: opacity 0s ease-in-out 0s;
-    transition: opacity 0s ease-in-out 0s;
+    -webkit-transition: opacity 0ms ease-in-out !important;
+    -webkit-transition-delay: 0ms !important;
+    -moz-transition: opacity 0ms ease-in-out 0ms !important;
+    -o-transition: opacity 0ms ease-in-out 0ms !important;
+    transition: opacity 0ms ease-in-out 0ms !important;
 }
 slides > slide.title-slide {
     background-image: url('figures/background_title_page_1920x1080.jpg');
     background-size: 100% 100%;
 }
-slides > slide.title-slide hgroup h1,
-slides > slide.title-slide hgroup h2,
-slides > slide.title-slide p {
-    color: black;
-}
 slides > slide.dark {
     background-image: url('figures/background_title_page_1920x1080.jpg') !important;
     background-size: 100% 100% !important;
 }
-slides > slide.dark > hgroup h2 {
+slides > slide.title-slide hgroup h1,
+slides > slide.title-slide hgroup h2,
+slides > slide.title-slide p,
+slides > slide,
+slides > slide hgroup h2 {
+    color: black;
+}
+slides > slide.dark hgroup h2 {
     color: black;
     font-size: 72px;
     letter-spacing: 10;
@@ -172,22 +174,22 @@ p2
 </div>
 
 <div style="float: left; width: 50%;">
-* Age
-* Family size
-* Education
-* Dominant hand
-* Gender
-* Marital status
-* Native language English (yes/no)
+> * Age
+> * Family size
+> * Education
+> * Dominant hand
+> * Gender
+> * Marital status
+> * Native language English (yes/no)
 </div>
 
 <div style="float: right; width: 50%;">
-* Race
-* Religion
-* Sexual orientation
-* Type of area in childhood
-* Voted in a national election past year
-* 8 automatically collected technical information
+> * Race
+> * Religion
+> * Sexual orientation
+> * Type of area in childhood
+> * Voted in a national election past year
+> * 8 automatically collected technical information
 </div>
 
 ## Pairwise associations with Openness
@@ -240,7 +242,7 @@ p6
 * distribution of residuals
 * Why we don't test for normality of residuals
 
-## Statistical significan('t)ce
+## Statistical significance
 
 <div class="notes">
 > - So dumb
@@ -295,6 +297,15 @@ p7.2
 ```
 
 ## Smooth effects
+
+<div class="notes">
+> - Eloquence makes sense - is part of the definition of Openness
+> - Age - concerning: in there search for a thing called "character" something consistent over time is desired
+</div>
+
+```{r smooths}
+cowplot::plot_grid(p10.1, p10.2, ncol = 1)
+```
 
 # Appendix
 

@@ -74,10 +74,10 @@ ggcross <- function(m1, m2, trans = identity, intercept = FALSE, splines = FALSE
 
   # plot
   ggplot() +
-    geom_vline(xintercept = trans(0)) +
-    geom_hline(yintercept = trans(0)) +
-    geom_abline(intercept = 0, slope = 1) +
+    geom_vline(xintercept = trans(0), color = "grey", size = 1.3) +
+    geom_hline(yintercept = trans(0), color = "grey", size = 1.3) +
+    geom_abline(intercept = 0, slope = 1, color = "grey", size = 1.3) +
     geom_line(aes(x = m1, y = m2, group = dot), data = rbind(dots_sd1, dots_sd2)) +
-    geom_point(aes(x = coef1, y = coef2, color = name), data = dots_coef, size = 2)
+    geom_line(aes(x = coef1, y = coef2), data = dots_coef, color = "#0075be", size = 1.3)
 }
 
