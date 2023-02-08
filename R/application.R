@@ -1,8 +1,5 @@
 if (Sys.info()[["sysname"]] == "Linux") options(mc.cores = 3) else options(mc.cores = 1)
 
-vars_full <- c("education", "gender", "urban", "engnat", "age", "hand", "religion", "orientation",
-               "race", "voted", "married", "familysize", "eloquence")
-
 # Variable selection -------------------------------------------------------------------------------
 
 if (file.exists("complete-search-aic.rds")) {
@@ -21,10 +18,9 @@ m.lam.fin <- as.formula(res[1, formula][[1]]) %>%
   gam(data = dt_bigf, family = gaussian(), method = "REML")
 
 m.lam.fin.sel <- as.formula(res[1, formula][[1]]) %>%
-  gam(data = na.omit(dt_bigf, cols = c(vars_full, "openness")), family = gaussian(), method = "ML")
+  gam(data = dt_bigf.fix, family = gaussian(), method = "ML")
 
-m.lam.min <- gam(openness ~ 1, data = na.omit(dt_bigf, cols = c(vars_full, "openness")),
-                 family = gaussian(), method = "ML")
+m.lam.min <- gam(openness ~ 1, data = dt_bigf.fix, family = gaussian(), method = "ML")
 
 # Sensitivity analysis -----------------------------------------------------------------------------
 

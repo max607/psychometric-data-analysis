@@ -50,7 +50,9 @@ search_all_models <- function(dt, vars, response, id_splines, run = TRUE) {
     setkey("AIC")
 }
 
-# Plot for comparing model coefficients ------------------------------------------------------------
+# Plots --------------------------------------------------------------------------------------------
+
+## Plot for comparing model coefficients -----------------------------------------------------------
 
 ggcross <- function(m1, m2, trans = identity, intercept = FALSE, splines = FALSE) {
 
@@ -79,5 +81,36 @@ ggcross <- function(m1, m2, trans = identity, intercept = FALSE, splines = FALSE
     geom_abline(intercept = 0, slope = 1, color = "grey", size = 1.3) +
     geom_line(aes(x = m1, y = m2, group = dot), data = rbind(dots_sd1, dots_sd2)) +
     geom_line(aes(x = coef1, y = coef2), data = dots_coef, color = "#0075be", size = 1.3)
+}
+
+## Plot for absolute frequencies -------------------------------------------------------------------
+
+ggtable <- function(dt, cols) {
+  dt[, .SD, .SDcols = cols] %>%
+    lapply(table, useNA = "always") %>%
+    lapply(names(.), function(name, ls) {
+      tab <- ls[[name]]
+      data.table(var = name, level = names(tab), n = as.numeric(tab))
+    }, ls = .) %>%
+    do.call(what = rbind) %>%
+    ggplot(aes(factor(level, levels = unique(level)), n)) +
+    geom_col(position = "dodge") +
+    labs(x = "Level of Variable", y = "Count") +
+    coord_flip() +
+    facet_wrap(vars(var), scales = "free_y", drop = TRUE, nrow = 2)
+}
+
+## Plot for model coefficients ---------------------------------------------------------------------
+
+ggcoef <- function(dt) {
+  ggplot(dt, aes(x = coef, y = value, color = factor(sig))) +
+    geom_hline(yintercept = 0) +
+    geom_pointrange(aes(ymin = lower, ymax = upper)) +
+    geom_point() +
+    ylab("Estimate") + xlab("Covariate") + ylim(-0.1, 0.1) +
+    coord_flip() +
+    scale_color_manual(values = c("black", "#a7aaac")) +
+    theme(legend.position = "none",
+          axis.text.y = element_text(face = ifelse(!dt$sig, "bold", "plain")))
 }
 

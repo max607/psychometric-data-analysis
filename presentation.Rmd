@@ -14,11 +14,11 @@ date: "`r format(Sys.time(), '%d.%m.%Y')`"
 
 <style>
 .build > * {
-    -webkit-transition: opacity 0ms ease-in-out !important;
-    -webkit-transition-delay: 0ms !important;
-    -moz-transition: opacity 0ms ease-in-out 0ms !important;
-    -o-transition: opacity 0ms ease-in-out 0ms !important;
-    transition: opacity 0ms ease-in-out 0ms !important;
+    -webkit-transition: opacity 0ms ease-in-out;
+    -webkit-transition-delay: 0ms;
+    -moz-transition: opacity 0ms ease-in-out 0ms;
+    -o-transition: opacity 0ms ease-in-out 0ms;
+    transition: opacity 0ms ease-in-out 0ms;
 }
 slides > slide.title-slide {
     background-image: url('figures/background_title_page_1920x1080.jpg');
@@ -94,8 +94,6 @@ source("R/plots.R")
 ## Statistics
 
 * REML is not suitable for model comparisons! Read wood chapter on model comparison
-* Note edf of final model and its splines
-* Classify level of measurement
 * Give frequencies of categories
 * Consider cumulative frequencies for ordinal variables and the median
 * Mention outlier are not so important because of n > 4000
@@ -105,6 +103,7 @@ source("R/plots.R")
 * Look at internally and externally studentized residuals
   * Maybe plot them against each other
   * Or plot the t-distribution with the values (https://online.stat.psu.edu/stat462/node/247/) (maybe histogram + theoretical distribution) (see data analysis notes)
+* Outlier
 
 ## Presentation
 
@@ -117,11 +116,11 @@ source("R/plots.R")
 ## The Big Five personality dimensions<footnote>https://en.wikipedia.org/wiki/Big_Five_personality_traits</footnote>
 
 <div class="notes">
-> - Extraversion (outgoing -- solitary / energetic -- reserved)
-> - Neuroticism (sensitive -- resilient / nervous -- confident)
-> - Agreeableness (friendly -- critical / compassionate -- rational)
-> - Conscientiousness (efficient -- extravagant / organized -- careless)
-> - Openness to experience (inventive -- consistent / curious -- cautious)
+> * Extraversion (outgoing -- solitary / energetic -- reserved)
+> * Neuroticism (sensitive -- resilient / nervous -- confident)
+> * Agreeableness (friendly -- critical / compassionate -- rational)
+> * Conscientiousness (efficient -- extravagant / organized -- careless)
+> * Openness to experience (inventive -- consistent / curious -- cautious)
 </div>
 
 * Extraversion
@@ -133,19 +132,19 @@ source("R/plots.R")
 # The Grid Scale Dataset
 
 <div class="notes">
-> - Online questionnaire data
-> - Study: "Development and Validation of the Short Grit Scale"
-> - Angela Duckworth and Patrick Quinn
-> - International Personality Item Pool (IPIP), Demographic data, Technical information
+> * Online questionnaire data
+> * Study: "Development and Validation of the Short Grit Scale"
+> * Angela Duckworth and Patrick Quinn
+> * International Personality Item Pool (IPIP), Demographic data, Technical information
 </div>
 
 ## Eloquence score
 
 <div class="notes">
-> - Basis: List of 16 words, 3 unreal
-> - "Mark all the words whose definitions you are sure to know."
-> - Sum of correct answers
-> - Assumption: No NAs
+> * Basis: List of 16 words, 3 unreal
+> * "Mark all the words whose definitions you are sure to know."
+> * Sum of correct answers
+> * Assumption: No NAs
 </div>
 
 ```{r plot-eloquence}
@@ -155,10 +154,10 @@ p1
 ## Openness score
 
 <div class="notes">
-> - Likert-type scale, Encoding: 0 (Disagree strongly) to 4 (Agree strongly), NA
-> - Questions 2, 4 and 6 other way around, After transformation all items positively correlated
-> - Score: sum of single items divided by four times the number of items answered
-> - Possible scores: multiples of $\frac{1}{40}$ (all ten openness items completed), $\frac{1}{36}$ (nine Openness items completed), $\frac{1}{32}$ ...
+> * Likert-type scale, Encoding: 0 (Disagree strongly) to 4 (Agree strongly), NA
+> * Questions 2, 4 and 6 other way around, After transformation all items positively correlated
+> * Score: sum of single items divided by four times the number of items answered
+> * Possible scores: multiples of $\frac{1}{40}$ (all ten openness items completed), $\frac{1}{36}$ (nine Openness items completed), $\frac{1}{32}$ ...
 </div>
 
 ```{r plot-openness}
@@ -168,36 +167,56 @@ p2
 ## Other variables
 
 <div class="notes">
-> - Scales: ratio, ratio, ordinal, rest: nominal
-> - Error in race variable
-> - Technical info as sanity check
-</div>
-
-<div style="float: left; width: 50%;">
-> * Age
-> * Family size
-> * Education
-> * Dominant hand
-> * Gender
-> * Marital status
-> * Native language English (yes/no)
-</div>
-
-<div style="float: right; width: 50%;">
-> * Race
-> * Religion
-> * Sexual orientation
-> * Type of area in childhood
-> * Voted in a national election past year
+> * Scales: ratio, ratio, ordinal, rest: nominal
+> * Error in race variable
+> * Technical info as sanity check
 > * 8 automatically collected technical information
 </div>
+
+```{r}
+ggtable(dt_bigf, sort(vars_cat)[1:4])
+```
+
+## Other variables
+
+```{r}
+ggtable(dt_bigf, sort(vars_cat)[5:8])
+```
+
+## Other variables
+
+```{r}
+cowplot::plot_grid(
+  ggtable(dt_bigf, sort(vars_cat)[9:10]),
+
+  cowplot::plot_grid(
+    ggplot(dt_bigf, aes(age)) +
+      geom_histogram(color = "white", fill = "#606161", bins = 50) +
+      geom_vline(xintercept = mean(dt_bigf$age, na.rm = TRUE)) +
+      labs(x = paste0("Age, NA: ", sum(is.na(dt_bigf$age))), y = "Count") +
+      xlim(0, 80),
+    ggplot(dt_bigf, aes(familysize)) +
+      geom_histogram(color = "white", fill = "#606161", bins = 50) +
+      geom_vline(xintercept = mean(dt_bigf$familysize, na.rm = TRUE)) +
+      labs(x = paste0("Family size, NA: ", sum(is.na(dt_bigf$familysize))), y = "Count") +
+      scale_x_continuous(limits = c(0, 18), breaks = seq(0, 18, 6)),
+    ncol = 1),
+  ncol = 2)
+```
+
+## Missing data
+
+* Full model (absolute): `r dt_bigf[, .N] - dt_bigf.fix[, .N]`
+* Full model (relative): `r scales::percent((dt_bigf[, .N] - dt_bigf.fix[, .N]) / dt_bigf[, .N], 0.01)`
+* Final model (absolute): `r dt_bigf[, .N] - summary(m.lam.fin)$n`
+* Final model (relative): `r scales::percent((dt_bigf[, .N] - summary(m.lam.fin)$n) / dt_bigf[, .N], 0.01)`
 
 ## Pairwise associations with Openness
 
 <div class="notes">
-> - Consider some covariates as non-linear
-> - Age starting at 13
-> - Family size: number of kids of mother -- starting at 1, linear
+> * Consider some covariates as non-linear
+> * Age starting at 13
+> * Family size: number of kids of mother -- starting at 1, linear
 </div>
 
 ```{r openness-continuous}
@@ -209,9 +228,9 @@ cowplot::plot_grid(p4, p3, p5, nrow = 3)
 ## Model selection
 
 <div class="notes">
-> - AIC: no theory $\rightarrow$ focus on prediction
-> - Full enumeration $\rightarrow$ avoid step-wise procedures (i.e., arbitrary choices) and problems with collinearity: only variables which contain unique information will be used
-> - No clear best model, see next slide
+> * AIC: no theory $\rightarrow$ focus on prediction
+> * Full enumeration $\rightarrow$ avoid step-wise procedures (i.e., arbitrary choices) and problems with collinearity: only variables which contain unique information will be used
+> * No clear best model, see next slide
 </div>
 
 ```{r aics}
@@ -223,10 +242,10 @@ res[1:5, .(AIC, Probability = scales::percent(probs, 0.01))] %>%
 ## A posteriori inclusion probabilities
 
 <div class="notes">
-> - Only urban and married have a probability lower than 50%
-> - Model using all covariates with a post incl prob > 50% is the model with the lower AIC
-> - Second best dropped voted
-> - Third best dropped engnat
+> * Only urban and married have a probability lower than 50%
+> * Model using all covariates with a post incl prob > 50% is the model with the lower AIC
+> * Second best dropped voted
+> * Third best dropped engnat
 </div>
 
 
@@ -234,19 +253,27 @@ res[1:5, .(AIC, Probability = scales::percent(probs, 0.01))] %>%
 p6
 ```
 
-## Model diagnostics
+## Model diagnostics and limitations
 
+<div style="float: left; width: 50%;">
 * Explained variance: `r scales::percent(summary(m.lam.fin)$dev.expl, 0.1)`
 * $n =$ `r summary(m.lam.fin)$n`
 * edf
 * distribution of residuals
 * Why we don't test for normality of residuals
+</div>
+
+<div style="float: right; width: 50%;">
+* Missing covariates
+* Number of observations?
+* Online questionnaire data
+</div>
 
 ## Statistical significance
 
 <div class="notes">
-> - So dumb
-> - With enough observations everything is statistically significant
+> * So dumb
+> * With enough observations everything is statistically significant
 </div>
 
 <div style="float: left; width: 50%;">
@@ -270,16 +297,11 @@ knitr::kable(dt_f[7:11], booktabs = TRUE,
 ```
 </div>
 
-## Limitations
-
-* Missing covariates
-* Number of observations?
-
 ## Coefficients
 
 <div class="notes">
-> - Do they make sense? / Are they as expected?
-> - Reference class
+> * Do they make sense? / Are they as expected?
+> * Reference class
 </div>
 
 ```{r coefficients1}
@@ -289,7 +311,7 @@ p7.1
 ## Coefficients
 
 <div class="notes">
-> - Reference class
+> * Reference class
 </div>
 
 ```{r coefficients2}
@@ -299,8 +321,8 @@ p7.2
 ## Smooth effects
 
 <div class="notes">
-> - Eloquence makes sense - is part of the definition of Openness
-> - Age - concerning: in there search for a thing called "character" something consistent over time is desired
+> * Eloquence makes sense - is part of the definition of Openness
+> * Age - concerning: in there search for a thing called "character" something consistent over time is desired
 </div>
 
 ```{r smooths}

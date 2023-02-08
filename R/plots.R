@@ -8,7 +8,7 @@ p1 <- ggplot(dt_bigf, aes(x = eloquence)) +
 # Plots for Openness score -------------------------------------------------------------------------
 
 p2 <- ggplot(dt_bigf, aes(x = openness)) +
-  geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length = 200), color = "#606161",
+  geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length = 200), color = "white",
                  fill = "#606161") +
   geom_function(fun = dnorm, args = dnorm_args(dt_bigf$openness), color = "#0075be", size = 1) +
   geom_density(size = 1) +
@@ -62,15 +62,6 @@ p9.1 <- data.table(fitted = fitted(m.lam.fin), resid = residuals(m.lam.fin, "res
 
 ## Classic effects ---------------------------------------------------------------------------------
 
-add_layers <- function(p) {
-  p +
-  geom_hline(yintercept = 0) +
-  geom_pointrange(aes(ymin = lower, ymax = upper)) +
-  geom_point() +
-  ylab("Estimate") + xlab("Covariate") + ylim(-0.1, 0.1) +
-  coord_flip()
-}
-
 coef_fin <- m.lam.fin$coefficients
 coef_fin <- coef_fin[names(coef_fin) != "(Intercept)"]
 coef_fin <- coef_fin[!grepl("^s\\(", names(coef_fin))]
@@ -78,14 +69,12 @@ sd_fin <- sqrt(diag(vcov(m.lam.fin)))[names(coef_fin)]
 
 dt_coef <- data.table(coef = names(coef_fin), value = coef_fin, sd = sd_fin) %>%
   .[, c("lower", "upper") := .(value - 2 * sd, value + 2 * sd)] %>%
+  .[, sig := as.numeric(lower < 0 & 0 < upper)] %>%
   setorder(-coef) %>%
   .[, coef := factor(coef, levels = coef)]
 
-p7.1 <- ggplot(dt_coef[c(1, 17:29),], aes(x = coef, y = value)) %>%
-  add_layers()
-
-p7.2 <- ggplot(dt_coef[2:16,], aes(x = coef, y = value)) %>%
-  add_layers()
+p7.1 <- ggcoef(dt_coef[c(1, 17:29),])
+p7.2 <- ggcoef(dt_coef[2:16,])
 
 ## Smooth effects ----------------------------------------------------------------------------------
 
@@ -96,7 +85,7 @@ p10.1 <- predict(m.lam.fin, type = "terms", terms = "s(age)", se.fit = TRUE) %$%
   geom_ribbon(aes(ymin = lower, ymax = upper), fill = "lightgrey") +
   geom_hline(yintercept = 0) +
   geom_line(size = 1, color = "#0075be") +
-  labs(x = "Age", y = "s(Age)") +
+  labs(x = paste0("Age, edf: ", round(summary(m.lam.fin)$edf[[1]], 3)), y = "s(Age)") +
   xlim(0, 80) +
   scale_y_continuous(limits = c(-0.15, 0.15), breaks = round(seq(-0.15, 0.15, 0.05), 2))
 
@@ -107,7 +96,8 @@ p10.2 <- predict(m.lam.fin, type = "terms", terms = "s(eloquence)", se.fit = TRU
   geom_ribbon(aes(ymin = lower, ymax = upper), fill = "lightgrey") +
   geom_hline(yintercept = 0) +
   geom_line(size = 1, color = "#0075be") +
-  labs(x = "Eloquence score", y = "s(Eloquence)") +
+  labs(x = paste0("Eloquence score, edf: ", round(summary(m.lam.fin)$edf[[2]], 3)),
+       y = "s(Eloquence score)") +
   scale_x_continuous(limits = c(0, 16), breaks = seq(0, 16, 4)) +
   scale_y_continuous(limits = c(-0.15, 0.15), breaks = round(seq(-0.15, 0.15, 0.05), 2))
 
