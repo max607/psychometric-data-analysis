@@ -12,23 +12,32 @@ if (file.exists("complete-search-aic.rds")) {
 
 res[, probs := exp((AIC[[1]] - AIC) / 2)][, probs := probs / sum(probs)]
 
-## Final model - all complete observations ---------------------------------------------------------
+# Final model - all complete observations ----------------------------------------------------------
 
 m.lam.fin <- as.formula(res[1, formula][[1]]) %>%
   gam(data = dt_bigf, family = gaussian(), method = "REML")
 
-m.lam.fin.sel <- as.formula(res[1, formula][[1]]) %>%
-  gam(data = dt_bigf.fix, family = gaussian(), method = "ML")
+## For testing -------------------------------------------------------------------------------------
 
 m.lam.min <- gam(openness ~ 1, data = dt_bigf.fix, family = gaussian(), method = "ML")
 
+m.lm.fin <- sub("s(age, bs = 'cr', k = 10)", "age", res[1, formula][[1]], fixed = TRUE) %>%
+  sub("s(eloquence, bs = 'cr', k = 10)", "eloquence", x = ., fixed = TRUE) %>%
+  as.formula() %>%
+  lm(data = dt_bigf)
+
 # Sensitivity analysis -----------------------------------------------------------------------------
+
+## Selected model ----------------------------------------------------------------------------------
+
+m.lam.fin.sel <- as.formula(res[1, formula][[1]]) %>%
+  gam(data = dt_bigf.fix, family = gaussian(), method = "ML")
 
 ## Final model as binomial model ------------------------------------------------------------------
 
-m.gam.fin <- sub("openness", "cbind(hits, misses)", res[1, formula][[1]]) %>%
-  as.formula() %>%
-  gam(data = dt_bigf, family = binomial(), method = "REML")
+# m.gam.fin <- sub("openness", "cbind(hits, misses)", res[1, formula][[1]]) %>%
+#   as.formula() %>%
+#   gam(data = dt_bigf, family = binomial(), method = "REML")
 
 # mean(residuals(m.lam.fin)^2)
 # mean(residuals(m.gam.fin, type = "response")^2)
@@ -36,15 +45,15 @@ m.gam.fin <- sub("openness", "cbind(hits, misses)", res[1, formula][[1]]) %>%
 ### Quasi ------------------------------------------------------------------------------------------
 
 # maybe REML is already quasi
-m.gam.fin.quasi <- sub("openness", "cbind(hits, misses)", res[1, formula][[1]]) %>%
-  as.formula() %>%
-  gam(data = dt_bigf, family = quasibinomial(), method = "REML")
+# m.gam.fin.quasi <- sub("openness", "cbind(hits, misses)", res[1, formula][[1]]) %>%
+#   as.formula() %>%
+#   gam(data = dt_bigf, family = quasibinomial(), method = "REML")
 
 # mean(residuals(m.gam.fin, type = "response")^2)
 # mean(residuals(m.gam.fin.quasi, type = "response")^2)
 
 ## Optimizer ---------------------------------------------------------------------------------------
 
-m.lam.fin.efs <- as.formula(res[1, formula][[1]]) %>%
-  gam(data = dt_bigf, family = gaussian(), method = "REML", optimizer = "efs")
+# m.lam.fin.efs <- as.formula(res[1, formula][[1]]) %>%
+#   gam(data = dt_bigf, family = gaussian(), method = "REML", optimizer = "efs")
 

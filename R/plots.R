@@ -1,18 +1,32 @@
-# Plots for Eloquence score ------------------------------------------------------------------------
+# Eloquence score ----------------------------------------------------------------------------------
 
 p1 <- ggplot(dt_bigf, aes(x = eloquence)) +
   geom_bar(color = "#606161", fill = "#606161") +
   scale_x_continuous(breaks = seq(0, 16, 4)) +
   labs(x = "Eloquence score", y = "Number of observations")
 
-# Plots for Openness score -------------------------------------------------------------------------
+# Openness score -----------------------------------------------------------------------------------
 
 p2 <- ggplot(dt_bigf, aes(x = openness)) +
-  geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length = 200), color = "white",
+  geom_histogram(aes(y = ..density..), breaks = seq(0, 1, length = 100), color = "white",
                  fill = "#606161") +
   geom_function(fun = dnorm, args = dnorm_args(dt_bigf$openness), color = "#0075be", size = 1) +
   geom_density(size = 1) +
   labs(x = "Openness score", y = "Density")
+
+# Frequencies --------------------------------------------------------------------------------------
+
+tmpp3 <- ggplot(dt_bigf, aes(age)) +
+  geom_histogram(color = "white", fill = "#606161", bins = 50) +
+  # geom_vline(xintercept = mean(dt_bigf$age, na.rm = TRUE)) +
+  labs(x = paste0("Age, NA: ", sum(is.na(dt_bigf$age))), y = "Count") +
+  xlim(0, 80)
+
+tmpp4 <- ggplot(dt_bigf, aes(familysize)) +
+  geom_bar(color = "white", fill = "#606161") +
+  # geom_vline(xintercept = mean(dt_bigf$familysize, na.rm = TRUE)) +
+  labs(x = paste0("Family size, NA: ", sum(is.na(dt_bigf$familysize))), y = "Count") +
+  scale_x_continuous(limits = c(0, 20), breaks = seq(1, 20, 6))
 
 # Continuous pair-wise associations ----------------------------------------------------------------
 
@@ -62,19 +76,8 @@ p9.1 <- data.table(fitted = fitted(m.lam.fin), resid = residuals(m.lam.fin, "res
 
 ## Classic effects ---------------------------------------------------------------------------------
 
-coef_fin <- m.lam.fin$coefficients
-coef_fin <- coef_fin[names(coef_fin) != "(Intercept)"]
-coef_fin <- coef_fin[!grepl("^s\\(", names(coef_fin))]
-sd_fin <- sqrt(diag(vcov(m.lam.fin)))[names(coef_fin)]
-
-dt_coef <- data.table(coef = names(coef_fin), value = coef_fin, sd = sd_fin) %>%
-  .[, c("lower", "upper") := .(value - 2 * sd, value + 2 * sd)] %>%
-  .[, sig := as.numeric(lower < 0 & 0 < upper)] %>%
-  setorder(-coef) %>%
-  .[, coef := factor(coef, levels = coef)]
-
-p7.1 <- ggcoef(dt_coef[c(1, 17:29),])
-p7.2 <- ggcoef(dt_coef[2:16,])
+p7.1 <- ggcoef(m.lam.fin, id = c(1, 17:29))
+p7.2 <- ggcoef(m.lam.fin, id = 2:16)
 
 ## Smooth effects ----------------------------------------------------------------------------------
 
@@ -107,6 +110,11 @@ p8 <- ggcross(m.lam.fin.sel, m.lam.fin) +
   theme(legend.position = "none") +
   lims(x = c(-0.1, 0.1), y = c(-0.1, 0.1)) +
   labs(x = "Selected model", y = "Refitted model")
+
+# ggcross_sd(m.lam.fin.sel, m.lam.fin) +
+#   theme(legend.position = "none") +
+#   lims(x = c(0, 0.04), y = c(0, 0.04)) +
+#   labs(x = "Selected model", y = "Refitted model")
 
 
 # data.table(lam = residuals(m.lam.fin), gam = residuals(m.gam.fin, type = "response")) %>%
